@@ -1,0 +1,5 @@
+{
+  "name": "Meesho Image Optimizer",
+  "description": "Generate 10 image variants with slight cropping and shifting to optimize for Meesho listings.",
+  "requestFramePermissions": []
+}
