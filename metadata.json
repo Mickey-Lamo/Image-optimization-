@@ -1,5 +1,5 @@
 {
-  "name": "Meesho Image Optimizer",
-  "description": "Generate 10 image variants with slight cropping and shifting to optimize for Meesho listings.",
+  "name": "VariantGen Lite",
+  "description": "Generate 20 high-quality image variants using high-performance canvas processing. No AI required.",
   "requestFramePermissions": []
 }
