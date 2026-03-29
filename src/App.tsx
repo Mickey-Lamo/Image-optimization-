@@ -9,19 +9,28 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { motion, AnimatePresence } from 'motion/react';
 
+interface SourceImage {
+  id: string;
+  url: string;
+  name: string;
+  width: number;
+  height: number;
+}
+
 interface ImageVariant {
   id: string;
   url: string;
   blob: Blob;
   name: string;
   mode: 'standard' | 'creative';
+  sourceId: string;
 }
 
 const BORDER_COLORS = ['#FF0000', '#0000FF', '#008000', '#FFFF00', '#800080', '#FFA500', '#FFC0CB', '#00FFFF', '#FF4500', '#32CD32'];
 const STICKER_TEXTS = ['BEST QUALITY', 'PREMIUM', 'HOT DEAL', 'NEW', 'TOP RATED', 'LIMITED', 'SALE', 'BEST SELLER'];
 
 export default function App() {
-  const [originalImage, setOriginalImage] = useState<{ url: string; name: string; width: number; height: number } | null>(null);
+  const [sourceImages, setSourceImages] = useState<SourceImage[]>([]);
   const [variants, setVariants] = useState<ImageVariant[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -29,25 +38,42 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
+    const files = Array.from(e.target.files || []) as File[];
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    
+    if (imageFiles.length === 0) return;
+
+    const newSourceImages: SourceImage[] = [];
+    let loadedCount = 0;
+
+    imageFiles.forEach((file: File) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
         img.onload = () => {
-          setOriginalImage({
+          newSourceImages.push({
+            id: Math.random().toString(36).substr(2, 9),
             url: event.target?.result as string,
             name: file.name.split('.')[0],
             width: img.width,
             height: img.height
           });
-          setVariants([]);
-          setError(null);
+          loadedCount++;
+          if (loadedCount === imageFiles.length) {
+            setSourceImages(prev => [...prev, ...newSourceImages]);
+            setVariants([]);
+            setError(null);
+          }
         };
         img.src = event.target?.result as string;
       };
       reader.readAsDataURL(file);
-    }
+    });
+  };
+
+  const removeSourceImage = (id: string) => {
+    setSourceImages(prev => prev.filter(img => img.id !== id));
+    setVariants([]);
   };
 
   const drawSticker = (ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number, text: string) => {
@@ -57,7 +83,6 @@ export default function App() {
     const badgeWidth = textMetrics.width + 30;
     const badgeHeight = fontSize + 20;
     
-    // Random corner with padding
     const margin = 30;
     const corners = [
       { x: margin, y: margin },
@@ -68,12 +93,10 @@ export default function App() {
     const corner = corners[Math.floor(Math.random() * corners.length)];
 
     ctx.save();
-    // Shadow for depth
     ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.shadowBlur = 15;
     ctx.shadowOffsetY = 5;
 
-    // Badge background
     const gradient = ctx.createLinearGradient(corner.x, corner.y, corner.x + badgeWidth, corner.y + badgeHeight);
     gradient.addColorStop(0, '#ff4e00');
     gradient.addColorStop(1, '#ec008c');
@@ -83,13 +106,11 @@ export default function App() {
     ctx.roundRect(corner.x, corner.y, badgeWidth, badgeHeight, 12);
     ctx.fill();
     
-    // Glossy overlay
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     ctx.beginPath();
     ctx.roundRect(corner.x, corner.y, badgeWidth, badgeHeight / 2, 12);
     ctx.fill();
 
-    // Text
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
     ctx.fillStyle = 'white';
@@ -100,159 +121,148 @@ export default function App() {
   };
 
   const generateAllVariants = async () => {
-    if (!originalImage) return;
+    if (sourceImages.length === 0) return;
 
     setIsProcessing(true);
     setError(null);
     setProgress(0);
     const newVariants: ImageVariant[] = [];
+    const totalToGeneratePerImage = 20;
+    const totalOverall = sourceImages.length * totalToGeneratePerImage;
+    let currentOverallCount = 0;
 
     try {
-      const img = new Image();
-      img.src = originalImage.url;
-      await new Promise((resolve) => (img.onload = resolve));
-
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("Canvas context not available");
 
-      const totalToGenerate = 20;
+      let sourceIndex = 0;
+      for (const source of sourceImages) {
+        const img = new Image();
+        img.src = source.url;
+        await new Promise((resolve) => (img.onload = resolve));
 
-      for (let i = 0; i < totalToGenerate; i++) {
-        const isStandard = i < 10;
-        const currentMode = isStandard ? 'standard' : 'creative';
-        
-        // Maintain scale: canvas size matches image size
-        canvas.width = originalImage.width;
-        canvas.height = originalImage.height;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // --- MIX METHOD LOGIC ---
-        
-        // 1. Randomized Filters (Color Shifts)
-        let brightness = 1.0;
-        let contrast = 1.0;
-        let saturate = 1.0;
-        let hueRotate = 0;
-
-        if (isStandard) {
-          // Very subtle adjustments for standard mode
-          brightness = 0.99 + Math.random() * 0.02;
-          contrast = 0.99 + Math.random() * 0.02;
-          saturate = 0.99 + Math.random() * 0.02;
-          hueRotate = (Math.random() - 0.5) * 3; // Minimal hue shift
-        } else {
-          // Slightly more noticeable but still natural for creative mode
-          brightness = 1.0 + Math.random() * 0.08;
-          contrast = 1.0 + Math.random() * 0.05;
-          saturate = 1.0 + Math.random() * 0.12;
-          hueRotate = (Math.random() - 0.5) * 8;
-        }
-
-        ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate}) hue-rotate(${hueRotate}deg)`;
-
-        // 2. Subtle Pixel/Position Shift
-        // We shift the image slightly but keep it within the canvas bounds by drawing slightly larger or just shifting
-        // To maintain scale perfectly, we just shift and accept minor edge cropping or we can draw at 100% scale.
-        const maxShift = canvas.width * 0.01; // 1% shift
-        const shiftX = (Math.random() - 0.5) * maxShift;
-        const shiftY = (Math.random() - 0.5) * maxShift;
-
-        // Draw image (maintaining scale)
-        ctx.drawImage(img, shiftX, shiftY, canvas.width, canvas.height);
-        ctx.filter = 'none';
-
-        // 3. MIXED TECHNIQUES LOGIC
-        // We randomize which techniques are applied to each variant for a true "mix"
-        
-        const roll = Math.random();
-        let hasBorder = false;
-        let hasSticker = false;
-        let hasVignette = false;
-        let hasGrain = false;
-
-        if (isStandard) {
-          // Standard: Mostly clean or single technique
-          if (roll < 0.25) hasBorder = true;
-          else if (roll < 0.40) hasSticker = true;
-          else if (roll < 0.50) { hasBorder = true; hasSticker = true; }
-          else if (roll < 0.65) hasGrain = true;
-          // 35% stay clean (just color/pixel shift)
-        } else {
-          // Creative: More combinations
-          if (roll < 0.20) { hasBorder = true; hasSticker = true; }
-          else if (roll < 0.40) { hasBorder = true; hasVignette = true; }
-          else if (roll < 0.60) { hasSticker = true; hasVignette = true; }
-          else if (roll < 0.80) { hasBorder = true; hasSticker = true; hasVignette = true; }
-          else { hasGrain = true; hasSticker = true; }
-        }
-
-        // Apply Border
-        if (hasBorder) {
-          const baseBorderWidth = Math.max(2, Math.round(canvas.width * 0.006));
-          const borderWidth = isStandard ? baseBorderWidth : baseBorderWidth * (1 + Math.random() * 0.5);
+        for (let i = 0; i < totalToGeneratePerImage; i++) {
+          const isStandard = i < 10;
+          const currentMode = isStandard ? 'standard' : 'creative';
           
-          ctx.strokeStyle = BORDER_COLORS[Math.floor(Math.random() * BORDER_COLORS.length)];
-          ctx.lineWidth = borderWidth;
-          ctx.strokeRect(borderWidth / 2, borderWidth / 2, canvas.width - borderWidth, canvas.height - borderWidth);
-        }
+          canvas.width = source.width;
+          canvas.height = source.height;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Apply Sticker
-        if (hasSticker) {
-          const stickerText = STICKER_TEXTS[Math.floor(Math.random() * STICKER_TEXTS.length)];
-          drawSticker(ctx, canvas.width, canvas.height, stickerText);
-        }
+          let brightness = 1.0;
+          let contrast = 1.0;
+          let saturate = 1.0;
+          let hueRotate = 0;
 
-        // Apply Vignette
-        if (hasVignette) {
-          const gradient = ctx.createRadialGradient(
-            canvas.width / 2, canvas.height / 2, 0,
-            canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 1.1
-          );
-          gradient.addColorStop(0, 'rgba(0,0,0,0)');
-          gradient.addColorStop(1, 'rgba(0,0,0,0.12)');
-          ctx.fillStyle = gradient;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
+          if (isStandard) {
+            brightness = 0.99 + Math.random() * 0.02;
+            contrast = 0.99 + Math.random() * 0.02;
+            saturate = 0.99 + Math.random() * 0.02;
+            hueRotate = (Math.random() - 0.5) * 3;
+          } else {
+            brightness = 1.0 + Math.random() * 0.08;
+            contrast = 1.0 + Math.random() * 0.05;
+            saturate = 1.0 + Math.random() * 0.12;
+            hueRotate = (Math.random() - 0.5) * 8;
+          }
 
-        // Apply Subtle Grain (Noise)
-        if (hasGrain) {
-          const grainCanvas = document.createElement('canvas');
-          grainCanvas.width = 128;
-          grainCanvas.height = 128;
-          const grainCtx = grainCanvas.getContext('2d');
-          if (grainCtx) {
-            const grainData = grainCtx.createImageData(128, 128);
-            for (let j = 0; j < grainData.data.length; j += 4) {
-              const val = Math.random() * 255;
-              grainData.data[j] = val;
-              grainData.data[j+1] = val;
-              grainData.data[j+2] = val;
-              grainData.data[j+3] = 15; // Very low opacity
-            }
-            grainCtx.putImageData(grainData, 0, 0);
-            const pattern = ctx.createPattern(grainCanvas, 'repeat');
-            if (pattern) {
-              ctx.fillStyle = pattern;
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate}) hue-rotate(${hueRotate}deg)`;
+
+          const maxShift = canvas.width * 0.01;
+          const shiftX = (Math.random() - 0.5) * maxShift;
+          const shiftY = (Math.random() - 0.5) * maxShift;
+
+          ctx.drawImage(img, shiftX, shiftY, canvas.width, canvas.height);
+          ctx.filter = 'none';
+
+          const roll = Math.random();
+          let hasBorder = false;
+          let hasSticker = false;
+          let hasVignette = false;
+          let hasGrain = false;
+
+          if (isStandard) {
+            if (roll < 0.25) hasBorder = true;
+            else if (roll < 0.40) hasSticker = true;
+            else if (roll < 0.50) { hasBorder = true; hasSticker = true; }
+            else if (roll < 0.65) hasGrain = true;
+          } else {
+            if (roll < 0.20) { hasBorder = true; hasSticker = true; }
+            else if (roll < 0.40) { hasBorder = true; hasVignette = true; }
+            else if (roll < 0.60) { hasSticker = true; hasVignette = true; }
+            else if (roll < 0.80) { hasBorder = true; hasSticker = true; hasVignette = true; }
+            else { hasGrain = true; hasSticker = true; }
+          }
+
+          if (hasBorder) {
+            const baseBorderWidth = Math.max(2, Math.round(canvas.width * 0.006));
+            const borderWidth = isStandard ? baseBorderWidth : baseBorderWidth * (1 + Math.random() * 0.5);
+            ctx.strokeStyle = BORDER_COLORS[Math.floor(Math.random() * BORDER_COLORS.length)];
+            ctx.lineWidth = borderWidth;
+            ctx.strokeRect(borderWidth / 2, borderWidth / 2, canvas.width - borderWidth, canvas.height - borderWidth);
+          }
+
+          if (hasSticker) {
+            const stickerText = STICKER_TEXTS[Math.floor(Math.random() * STICKER_TEXTS.length)];
+            drawSticker(ctx, canvas.width, canvas.height, stickerText);
+          }
+
+          if (hasVignette) {
+            const gradient = ctx.createRadialGradient(
+              canvas.width / 2, canvas.height / 2, 0,
+              canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 1.1
+            );
+            gradient.addColorStop(0, 'rgba(0,0,0,0)');
+            gradient.addColorStop(1, 'rgba(0,0,0,0.12)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+
+          if (hasGrain) {
+            const grainCanvas = document.createElement('canvas');
+            grainCanvas.width = 128;
+            grainCanvas.height = 128;
+            const grainCtx = grainCanvas.getContext('2d');
+            if (grainCtx) {
+              const grainData = grainCtx.createImageData(128, 128);
+              for (let j = 0; j < grainData.data.length; j += 4) {
+                const val = Math.random() * 255;
+                grainData.data[j] = val;
+                grainData.data[j+1] = val;
+                grainData.data[j+2] = val;
+                grainData.data[j+3] = 15;
+              }
+              grainCtx.putImageData(grainData, 0, 0);
+              const pattern = ctx.createPattern(grainCanvas, 'repeat');
+              if (pattern) {
+                ctx.fillStyle = pattern;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+              }
             }
           }
-        }
 
-        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
-        if (blob) {
-          newVariants.push({
-            id: Math.random().toString(36).substr(2, 9),
-            url: URL.createObjectURL(blob),
-            blob: blob,
-            name: `${originalImage.name}_v${i + 1}_${currentMode}.jpg`,
-            mode: currentMode
-          });
-        }
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+          if (blob) {
+            const sIdx = (sourceIndex + 1).toString().padStart(2, '0');
+            const vIdx = (i + 1).toString().padStart(2, '0');
+            const modeLabel = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
+            
+            newVariants.push({
+              id: Math.random().toString(36).substr(2, 9),
+              url: URL.createObjectURL(blob),
+              blob: blob,
+              name: `Img${sIdx}_${source.name}_v${vIdx}_${modeLabel}.jpg`,
+              mode: currentMode,
+              sourceId: source.id
+            });
+          }
 
-        setProgress(Math.round(((i + 1) / totalToGenerate) * 100));
-        // Small delay to keep UI responsive
-        await new Promise(r => setTimeout(r, 40));
+          currentOverallCount++;
+          setProgress(Math.round((currentOverallCount / totalOverall) * 100));
+          await new Promise(r => setTimeout(r, 20));
+        }
+        sourceIndex++;
       }
 
       setVariants(newVariants);
@@ -274,7 +284,7 @@ export default function App() {
     });
 
     const content = await zip.generateAsync({ type: 'blob' });
-    saveAs(content, `${originalImage?.name}_20_variants.zip`);
+    saveAs(content, `batch_variants_${new Date().getTime()}.zip`);
   };
 
   return (
@@ -294,7 +304,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl font-light tracking-tight mb-4 text-gray-900"
           >
-            VariantGen <span className="font-semibold text-blue-600">Lite</span>
+            VariantGen <span className="font-semibold text-blue-600">Pro</span>
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
@@ -302,46 +312,54 @@ export default function App() {
             transition={{ delay: 0.2 }}
             className="text-gray-500 max-w-lg mx-auto text-lg"
           >
-            Generate 20 unique variants instantly using high-performance canvas processing. No AI required.
+            Batch process multiple images. Generate 20 unique variants for each using high-performance canvas processing.
           </motion.p>
         </header>
 
         <main className="space-y-12">
           {/* Upload & Controls */}
           <section className="grid lg:grid-cols-12 gap-8 items-start">
-            {/* Left: Upload Area */}
-            <div className="lg:col-span-7">
+            {/* Left: Upload Area & Batch List */}
+            <div className="lg:col-span-7 space-y-6">
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 className={`relative aspect-video rounded-[32px] border-2 border-dashed transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center
-                  ${originalImage ? 'border-blue-200 bg-white' : 'border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/30'}`}
+                  ${sourceImages.length > 0 ? 'border-blue-200 bg-white' : 'border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/30'}`}
               >
-                {originalImage ? (
-                  <>
-                    <img src={originalImage.url} alt="Original" className="w-full h-full object-contain p-4" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <p className="text-white font-medium flex items-center gap-2">
-                        <RefreshCw className="w-5 h-5" /> Change Image
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-12 text-center">
-                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                      <Upload className="w-8 h-8 text-blue-500" />
-                    </div>
-                    <p className="text-xl font-medium text-gray-900 mb-2">Upload Source Image</p>
-                    <p className="text-gray-400">Drag and drop or click to browse</p>
+                <div className="p-12 text-center">
+                  <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <Upload className="w-8 h-8 text-blue-500" />
                   </div>
-                )}
+                  <p className="text-xl font-medium text-gray-900 mb-2">
+                    {sourceImages.length > 0 ? 'Add More Images' : 'Upload Source Images'}
+                  </p>
+                  <p className="text-gray-400">Batch processing supported. Select multiple files.</p>
+                </div>
                 <input 
                   type="file" 
                   ref={fileInputRef} 
                   onChange={handleFileChange} 
                   className="hidden" 
                   accept="image/*"
+                  multiple
                 />
               </div>
+
+              {sourceImages.length > 0 && (
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-4">
+                  {sourceImages.map((img) => (
+                    <div key={img.id} className="relative aspect-square rounded-2xl overflow-hidden border border-gray-100 group">
+                      <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); removeSourceImage(img.id); }}
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right: Controls */}
@@ -349,23 +367,27 @@ export default function App() {
               <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100">
                 <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
                   <Palette className="w-5 h-5 text-blue-500" />
-                  Processing Parameters
+                  Batch Parameters
                 </h2>
 
                 <div className="space-y-6">
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-gray-600">Total Variants</span>
-                      <span className="text-sm font-bold text-blue-600">20 Images</span>
+                      <span className="text-sm font-medium text-gray-600">Source Images</span>
+                      <span className="text-sm font-bold text-blue-600">{sourceImages.length} Files</span>
+                    </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-600">Total Output</span>
+                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * 20} Variants</span>
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
-                        <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Standard</p>
-                        <p className="text-lg font-semibold">10</p>
+                        <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Per Image</p>
+                        <p className="text-lg font-semibold">20</p>
                       </div>
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
-                        <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Creative</p>
-                        <p className="text-lg font-semibold">10</p>
+                        <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Mix Method</p>
+                        <p className="text-lg font-semibold">Active</p>
                       </div>
                     </div>
                   </div>
@@ -377,21 +399,17 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      Thin colored borders (outside)
+                      Mixed techniques (Borders, Stickers, Grain)
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                       Subtle color & pixel shifts
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                      <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                      High-quality badges (Creative mode)
-                    </div>
                   </div>
 
                   <button
                     onClick={generateAllVariants}
-                    disabled={isProcessing || !originalImage}
+                    disabled={isProcessing || sourceImages.length === 0}
                     className="w-full bg-blue-600 text-white rounded-2xl py-5 font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20 flex flex-col items-center justify-center gap-1"
                   >
                     {isProcessing ? (
@@ -402,7 +420,7 @@ export default function App() {
                     ) : (
                       <>
                         <Layers className="w-6 h-6 mb-1" />
-                        <span>Generate 20 Variants</span>
+                        <span>Process Batch</span>
                       </>
                     )}
                   </button>
@@ -455,16 +473,16 @@ export default function App() {
                   <div>
                     <h2 className="text-2xl font-semibold flex items-center gap-3">
                       <Layers className="w-6 h-6 text-blue-500" />
-                      Generated Variants
+                      Generated Batch
                     </h2>
-                    <p className="text-gray-400 mt-1">20 high-quality variants ready for use</p>
+                    <p className="text-gray-400 mt-1">{variants.length} high-quality variants ready for use</p>
                   </div>
                   <button
                     onClick={downloadZip}
                     className="bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-black transition-all flex items-center gap-3 shadow-xl"
                   >
                     <FileArchive className="w-5 h-5" />
-                    Download All (ZIP)
+                    Download Batch (ZIP)
                   </button>
                 </div>
 
@@ -474,7 +492,7 @@ export default function App() {
                       key={variant.id}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: idx * 0.05 }}
+                      transition={{ delay: idx * 0.02 }}
                       className="group relative bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all"
                     >
                       <div className="aspect-square relative">
@@ -514,16 +532,16 @@ export default function App() {
 
         {/* Footer */}
         <footer className="mt-32 pt-12 border-t border-gray-100 text-center">
-          <p className="text-gray-400 text-sm">© 2026 VariantGen Lite • High-Performance Canvas Engine</p>
+          <p className="text-gray-400 text-sm">© 2026 VariantGen Pro • High-Performance Batch Engine</p>
           <div className="flex items-center justify-center gap-6 mt-6">
+            <div className="flex items-center gap-2 text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+              <CheckCircle2 className="w-3 h-3" /> Batch Processing
+            </div>
             <div className="flex items-center gap-2 text-[10px] font-bold text-gray-300 uppercase tracking-widest">
               <CheckCircle2 className="w-3 h-3" /> Scale Maintained
             </div>
             <div className="flex items-center gap-2 text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-              <CheckCircle2 className="w-3 h-3" /> No AI Used
-            </div>
-            <div className="flex items-center gap-2 text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-              <CheckCircle2 className="w-3 h-3" /> Custom Borders
+              <CheckCircle2 className="w-3 h-3" /> Mix Method
             </div>
           </div>
         </footer>
