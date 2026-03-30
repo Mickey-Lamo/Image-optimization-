@@ -82,7 +82,7 @@ export default function App() {
     setError(null);
     setProgress(0);
     const newVariants: ImageVariant[] = [];
-    const totalToGeneratePerImage = 25;
+    const totalToGeneratePerImage = 10;
     const totalOverall = sourceImages.length * totalToGeneratePerImage;
     let currentOverallCount = 0;
 
@@ -102,56 +102,84 @@ export default function App() {
         });
 
         for (let i = 0; i < totalToGeneratePerImage; i++) {
-          const isPadded = i >= 6 && i < 11;
-          const paddingAmount = isPadded ? Math.round(source.width * 0.04) : 0; // 4% padding on each side
+          // Define 10 distinct modes to make images "fully different"
+          const isPadded = i === 4 || i === 5 || i === 8; // 3 padded variants
+          const hasWatermark = i === 7 || i === 9; // Exactly 2 watermarked variants (v08 and v10)
           
+          let brightness = 1.0;
+          let contrast = 1.0;
+          let saturate = 1.0;
+          let hueRotate = 0;
+
+          // 10 Distinct Visual Modes
+          switch(i) {
+            case 0: break; // Original / Clean
+            case 1: brightness = 1.04; saturate = 1.06; break; // Bright & Warm
+            case 2: hueRotate = -3; saturate = 0.94; break; // Cool / Professional
+            case 3: contrast = 1.08; saturate = 1.02; break; // High Contrast / Punchy
+            case 4: brightness = 0.97; contrast = 1.05; break; // Moody / Deep
+            case 5: saturate = 0.88; brightness = 1.02; break; // Muted / Vintage
+            case 6: saturate = 1.15; contrast = 1.02; break; // High Saturation / Vibrant
+            case 7: hueRotate = 3; brightness = 1.03; break; // Warm / Golden
+            case 8: contrast = 1.04; brightness = 1.05; break; // Sharp / Light
+            case 9: contrast = 0.94; brightness = 1.03; saturate = 1.02; break; // Soft / Airy
+          }
+
+          // Add random metadata jitter (extremely subtle)
+          brightness += (Math.random() - 0.5) * 0.004;
+          contrast += (Math.random() - 0.5) * 0.004;
+          hueRotate += (Math.random() - 0.5) * 0.4;
+
+          const paddingAmount = isPadded ? Math.round(source.width * 0.05) : 0;
           canvas.width = source.width + (paddingAmount * 2);
           canvas.height = source.height;
           
-          // Use white background
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // 1. Subtle Pixel Shift (Metadata tweak)
           const shiftX = (Math.random() - 0.5) * 1.5;
           const shiftY = (Math.random() - 0.5) * 1.5;
 
-          // 2. Extremely Subtle Color Tweak
-          const hueRotate = (Math.random() - 0.5) * 0.4;
-          const brightness = 0.999 + Math.random() * 0.002;
-          ctx.filter = `hue-rotate(${hueRotate}deg) brightness(${brightness})`;
-
-          // 3. Draw image at 100% scale (Preserving original size)
+          ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate}) hue-rotate(${hueRotate}deg)`;
           ctx.drawImage(img, paddingAmount + shiftX, shiftY, source.width, source.height);
           ctx.filter = 'none';
 
-          // 4. Watermark Logic (Skip for first 6 images: indices 0-5)
-          const hasWatermark = i >= 6;
           if (hasWatermark) {
             ctx.save();
-            const fontSize = Math.max(12, Math.round(source.width * 0.025));
-            ctx.font = `${fontSize}px sans-serif`;
-            ctx.fillStyle = `rgba(128, 128, 128, 0.08)`;
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'bottom';
-            const padding = fontSize;
-            ctx.fillText(WATERMARK_TEXT, canvas.width - padding, canvas.height - padding);
+            const fontSize = Math.max(16, Math.round(source.width * 0.045));
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.fillStyle = `rgba(0, 0, 0, 0.35)`; // Darker and more opaque like reference
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            
+            // Stacked text like the reference
+            const lines = ["golden", "Creation"];
+            const lineHeight = fontSize * 1.1;
+            
+            // Position: Middle Left (like the reference image)
+            const startX = canvas.width * 0.15;
+            const startY = canvas.height * 0.6;
+            
+            lines.forEach((line, index) => {
+              ctx.fillText(line, startX, startY + (index * lineHeight));
+            });
+            
             ctx.restore();
           }
 
-          // 5. Generate Blob
-          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.94));
           
           if (blob) {
             const sIdx = (sourceIndex + 1).toString().padStart(2, '0');
             const vIdx = (i + 1).toString().padStart(2, '0');
             const paddedSuffix = isPadded ? '_Padded' : '';
+            const wmSuffix = hasWatermark ? '_Tagged' : '';
             
             newVariants.push({
               id: Math.random().toString(36).substr(2, 9),
               url: URL.createObjectURL(blob),
               blob: blob,
-              name: `Img${sIdx}_${source.name}_v${vIdx}${paddedSuffix}.jpg`,
+              name: `Img${sIdx}_${source.name}_v${vIdx}${paddedSuffix}${wmSuffix}.jpg`,
               mode: 'standard',
               sourceId: source.id
             });
@@ -214,7 +242,7 @@ export default function App() {
             transition={{ delay: 0.2 }}
             className="text-gray-500 max-w-lg mx-auto text-lg"
           >
-            Batch process multiple images. Generate 25 unique variants for each using high-performance canvas processing.
+            Batch process multiple images. Generate 10 unique variants for each using high-performance canvas processing.
           </motion.p>
         </header>
 
@@ -280,12 +308,12 @@ export default function App() {
                     </div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-600">Total Output</span>
-                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * 25} Variants</span>
+                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * 10} Variants</span>
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
                         <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Per Image</p>
-                        <p className="text-lg font-semibold">25</p>
+                        <p className="text-lg font-semibold">10</p>
                       </div>
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
                         <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Mix Method</p>
@@ -301,11 +329,11 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      Mixed techniques (Borders, Stickers, Grain)
+                      10 Distinct visual modes
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                      Subtle color & pixel shifts
+                      Subtle color & metadata shifts
                     </div>
                   </div>
 
