@@ -104,7 +104,6 @@ export default function App() {
         for (let i = 0; i < totalToGeneratePerImage; i++) {
           // Define 10 distinct modes to make images "fully different"
           const isPadded = i === 4 || i === 5 || i === 8; // 3 padded variants
-          const hasWatermark = i === 7 || i === 9; // Exactly 2 watermarked variants (v08 and v10)
           
           let brightness = 1.0;
           let contrast = 1.0;
@@ -144,26 +143,36 @@ export default function App() {
           ctx.drawImage(img, paddingAmount + shiftX, shiftY, source.width, source.height);
           ctx.filter = 'none';
 
-          if (hasWatermark) {
+          // Watermark Logic: 4 Tagged images with 2 different styles
+          const hasWatermarkStyleA = i === 7 || i === 9; // Stacked, Middle-Left (Reference style)
+          const hasWatermarkStyleB = i === 2 || i === 6; // Single Line, Bottom-Right (Classic style)
+          const hasWatermark = hasWatermarkStyleA || hasWatermarkStyleB;
+
+          if (hasWatermarkStyleA) {
             ctx.save();
             const fontSize = Math.max(16, Math.round(source.width * 0.045));
             ctx.font = `bold ${fontSize}px sans-serif`;
-            ctx.fillStyle = `rgba(0, 0, 0, 0.35)`; // Darker and more opaque like reference
+            ctx.fillStyle = `rgba(0, 0, 0, 0.35)`;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            
-            // Stacked text like the reference
             const lines = ["golden", "Creation"];
             const lineHeight = fontSize * 1.1;
-            
-            // Position: Middle Left (like the reference image)
             const startX = canvas.width * 0.15;
             const startY = canvas.height * 0.6;
-            
             lines.forEach((line, index) => {
               ctx.fillText(line, startX, startY + (index * lineHeight));
             });
-            
+            ctx.restore();
+          } else if (hasWatermarkStyleB) {
+            ctx.save();
+            const fontSize = Math.max(12, Math.round(source.width * 0.03));
+            ctx.font = `italic ${fontSize}px serif`;
+            ctx.fillStyle = `rgba(255, 255, 255, 0.4)`; // Light/White style
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.shadowBlur = 4;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(WATERMARK_TEXT, canvas.width - fontSize, canvas.height - fontSize);
             ctx.restore();
           }
 
