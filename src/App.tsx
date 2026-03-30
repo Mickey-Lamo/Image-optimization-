@@ -26,8 +26,7 @@ interface ImageVariant {
   sourceId: string;
 }
 
-const BORDER_COLORS = ['#FF0000', '#0000FF', '#008000', '#FFFF00', '#800080', '#FFA500', '#FFC0CB', '#00FFFF', '#FF4500', '#32CD32'];
-const STICKER_TEXTS = ['BEST QUALITY', 'PREMIUM', 'HOT DEAL', 'NEW', 'TOP RATED', 'LIMITED', 'SALE', 'BEST SELLER'];
+const WATERMARK_TEXT = "golden Creation";
 
 export default function App() {
   const [sourceImages, setSourceImages] = useState<SourceImage[]>([]);
@@ -76,50 +75,6 @@ export default function App() {
     setVariants([]);
   };
 
-  const drawSticker = (ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number, text: string) => {
-    const fontSize = Math.max(14, Math.min(canvasWidth * 0.04, 32));
-    ctx.font = `bold ${fontSize}px sans-serif`;
-    const textMetrics = ctx.measureText(text);
-    const badgeWidth = textMetrics.width + 30;
-    const badgeHeight = fontSize + 20;
-    
-    const margin = 30;
-    const corners = [
-      { x: margin, y: margin },
-      { x: canvasWidth - badgeWidth - margin, y: margin },
-      { x: margin, y: canvasHeight - badgeHeight - margin },
-      { x: canvasWidth - badgeWidth - margin, y: canvasHeight - badgeHeight - margin }
-    ];
-    const corner = corners[Math.floor(Math.random() * corners.length)];
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetY = 5;
-
-    const gradient = ctx.createLinearGradient(corner.x, corner.y, corner.x + badgeWidth, corner.y + badgeHeight);
-    gradient.addColorStop(0, '#ff4e00');
-    gradient.addColorStop(1, '#ec008c');
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.roundRect(corner.x, corner.y, badgeWidth, badgeHeight, 12);
-    ctx.fill();
-    
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.beginPath();
-    ctx.roundRect(corner.x, corner.y, badgeWidth, badgeHeight / 2, 12);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, corner.x + badgeWidth / 2, corner.y + badgeHeight / 2);
-    ctx.restore();
-  };
-
   const generateAllVariants = async () => {
     if (sourceImages.length === 0) return;
 
@@ -127,140 +82,87 @@ export default function App() {
     setError(null);
     setProgress(0);
     const newVariants: ImageVariant[] = [];
-    const totalToGeneratePerImage = 20;
+    const totalToGeneratePerImage = 25;
     const totalOverall = sourceImages.length * totalToGeneratePerImage;
     let currentOverallCount = 0;
 
     try {
       const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { alpha: false });
       if (!ctx) throw new Error("Canvas context not available");
 
       let sourceIndex = 0;
       for (const source of sourceImages) {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         img.src = source.url;
-        await new Promise((resolve) => (img.onload = resolve));
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
 
         for (let i = 0; i < totalToGeneratePerImage; i++) {
-          const isStandard = i < 10;
-          const currentMode = isStandard ? 'standard' : 'creative';
+          const isPadded = i >= 6 && i < 11;
+          const paddingAmount = isPadded ? Math.round(source.width * 0.04) : 0; // 4% padding on each side
           
-          canvas.width = source.width;
+          canvas.width = source.width + (paddingAmount * 2);
           canvas.height = source.height;
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          // Use white background
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          let brightness = 1.0;
-          let contrast = 1.0;
-          let saturate = 1.0;
-          let hueRotate = 0;
+          // 1. Subtle Pixel Shift (Metadata tweak)
+          const shiftX = (Math.random() - 0.5) * 1.5;
+          const shiftY = (Math.random() - 0.5) * 1.5;
 
-          if (isStandard) {
-            brightness = 0.99 + Math.random() * 0.02;
-            contrast = 0.99 + Math.random() * 0.02;
-            saturate = 0.99 + Math.random() * 0.02;
-            hueRotate = (Math.random() - 0.5) * 3;
-          } else {
-            brightness = 1.0 + Math.random() * 0.08;
-            contrast = 1.0 + Math.random() * 0.05;
-            saturate = 1.0 + Math.random() * 0.12;
-            hueRotate = (Math.random() - 0.5) * 8;
-          }
+          // 2. Extremely Subtle Color Tweak
+          const hueRotate = (Math.random() - 0.5) * 0.4;
+          const brightness = 0.999 + Math.random() * 0.002;
+          ctx.filter = `hue-rotate(${hueRotate}deg) brightness(${brightness})`;
 
-          ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate}) hue-rotate(${hueRotate}deg)`;
-
-          const maxShift = canvas.width * 0.01;
-          const shiftX = (Math.random() - 0.5) * maxShift;
-          const shiftY = (Math.random() - 0.5) * maxShift;
-
-          ctx.drawImage(img, shiftX, shiftY, canvas.width, canvas.height);
+          // 3. Draw image at 100% scale (Preserving original size)
+          ctx.drawImage(img, paddingAmount + shiftX, shiftY, source.width, source.height);
           ctx.filter = 'none';
 
-          const roll = Math.random();
-          let hasBorder = false;
-          let hasSticker = false;
-          let hasVignette = false;
-          let hasGrain = false;
-
-          if (isStandard) {
-            if (roll < 0.25) hasBorder = true;
-            else if (roll < 0.40) hasSticker = true;
-            else if (roll < 0.50) { hasBorder = true; hasSticker = true; }
-            else if (roll < 0.65) hasGrain = true;
-          } else {
-            if (roll < 0.20) { hasBorder = true; hasSticker = true; }
-            else if (roll < 0.40) { hasBorder = true; hasVignette = true; }
-            else if (roll < 0.60) { hasSticker = true; hasVignette = true; }
-            else if (roll < 0.80) { hasBorder = true; hasSticker = true; hasVignette = true; }
-            else { hasGrain = true; hasSticker = true; }
+          // 4. Watermark Logic (Skip for first 6 images: indices 0-5)
+          const hasWatermark = i >= 6;
+          if (hasWatermark) {
+            ctx.save();
+            const fontSize = Math.max(12, Math.round(source.width * 0.025));
+            ctx.font = `${fontSize}px sans-serif`;
+            ctx.fillStyle = `rgba(128, 128, 128, 0.08)`;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            const padding = fontSize;
+            ctx.fillText(WATERMARK_TEXT, canvas.width - padding, canvas.height - padding);
+            ctx.restore();
           }
 
-          if (hasBorder) {
-            const baseBorderWidth = Math.max(2, Math.round(canvas.width * 0.006));
-            const borderWidth = isStandard ? baseBorderWidth : baseBorderWidth * (1 + Math.random() * 0.5);
-            ctx.strokeStyle = BORDER_COLORS[Math.floor(Math.random() * BORDER_COLORS.length)];
-            ctx.lineWidth = borderWidth;
-            ctx.strokeRect(borderWidth / 2, borderWidth / 2, canvas.width - borderWidth, canvas.height - borderWidth);
-          }
-
-          if (hasSticker) {
-            const stickerText = STICKER_TEXTS[Math.floor(Math.random() * STICKER_TEXTS.length)];
-            drawSticker(ctx, canvas.width, canvas.height, stickerText);
-          }
-
-          if (hasVignette) {
-            const gradient = ctx.createRadialGradient(
-              canvas.width / 2, canvas.height / 2, 0,
-              canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 1.1
-            );
-            gradient.addColorStop(0, 'rgba(0,0,0,0)');
-            gradient.addColorStop(1, 'rgba(0,0,0,0.12)');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          }
-
-          if (hasGrain) {
-            const grainCanvas = document.createElement('canvas');
-            grainCanvas.width = 128;
-            grainCanvas.height = 128;
-            const grainCtx = grainCanvas.getContext('2d');
-            if (grainCtx) {
-              const grainData = grainCtx.createImageData(128, 128);
-              for (let j = 0; j < grainData.data.length; j += 4) {
-                const val = Math.random() * 255;
-                grainData.data[j] = val;
-                grainData.data[j+1] = val;
-                grainData.data[j+2] = val;
-                grainData.data[j+3] = 15;
-              }
-              grainCtx.putImageData(grainData, 0, 0);
-              const pattern = ctx.createPattern(grainCanvas, 'repeat');
-              if (pattern) {
-                ctx.fillStyle = pattern;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-              }
-            }
-          }
-
-          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+          // 5. Generate Blob
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+          
           if (blob) {
             const sIdx = (sourceIndex + 1).toString().padStart(2, '0');
             const vIdx = (i + 1).toString().padStart(2, '0');
-            const modeLabel = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
+            const paddedSuffix = isPadded ? '_Padded' : '';
             
             newVariants.push({
               id: Math.random().toString(36).substr(2, 9),
               url: URL.createObjectURL(blob),
               blob: blob,
-              name: `Img${sIdx}_${source.name}_v${vIdx}_${modeLabel}.jpg`,
-              mode: currentMode,
+              name: `Img${sIdx}_${source.name}_v${vIdx}${paddedSuffix}.jpg`,
+              mode: 'standard',
               sourceId: source.id
             });
           }
 
           currentOverallCount++;
           setProgress(Math.round((currentOverallCount / totalOverall) * 100));
-          await new Promise(r => setTimeout(r, 20));
+          
+          if (currentOverallCount % 5 === 0) {
+            await new Promise(r => setTimeout(r, 10));
+          }
         }
         sourceIndex++;
       }
@@ -312,7 +214,7 @@ export default function App() {
             transition={{ delay: 0.2 }}
             className="text-gray-500 max-w-lg mx-auto text-lg"
           >
-            Batch process multiple images. Generate 20 unique variants for each using high-performance canvas processing.
+            Batch process multiple images. Generate 25 unique variants for each using high-performance canvas processing.
           </motion.p>
         </header>
 
@@ -378,12 +280,12 @@ export default function App() {
                     </div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-600">Total Output</span>
-                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * 20} Variants</span>
+                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * 25} Variants</span>
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
                         <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Per Image</p>
-                        <p className="text-lg font-semibold">20</p>
+                        <p className="text-lg font-semibold">25</p>
                       </div>
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
                         <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Mix Method</p>
