@@ -116,7 +116,32 @@ export default function App() {
           let badgeText = '';
 
           // 20 Distinct Visual Modes (10 for Standard, 20 for Pro)
-          if (i < 10) {
+          if (isProMode) {
+            // Pro Mode: 20 Creative Variants
+            switch(i) {
+              case 0: paddingX = 0.04; paddingY = 0.04; break; // Small Padding
+              case 1: paddingX = 0.08; paddingY = 0.08; break; // Large Padding
+              case 2: borderColor = '#000000'; borderWidth = 0.02; break; // Black Border
+              case 3: borderColor = '#FFD700'; borderWidth = 0.025; break; // Gold Border
+              case 4: borderColor = '#C0C0C0'; borderWidth = 0.02; break; // Silver Border
+              case 5: paddingX = 0.05; paddingY = 0.05; borderColor = '#000000'; borderWidth = 0.015; break; // Pad + Black Border
+              case 6: paddingX = 0.05; paddingY = 0.05; borderColor = '#FFD700'; borderWidth = 0.015; break; // Pad + Gold Border
+              case 7: scale = 0.85; paddingX = 0.075; paddingY = 0.075; break; // Scaled Down + Large Pad
+              case 8: scale = 0.95; paddingX = 0.025; paddingY = 0.025; break; // Subtle Scale Down
+              case 9: scale = 1.15; break; // Zoom In
+              case 10: badgeText = 'BEST SELLER'; break; // Red Badge
+              case 11: badgeText = 'BEST DEAL'; break; // Orange Badge
+              case 12: badgeText = 'NEW ARRIVAL'; break; // Green Badge
+              case 13: badgeText = 'TOP RATED'; break; // Blue Badge
+              case 14: paddingX = 0.06; paddingY = 0.06; badgeText = 'LIMITED'; break; // Pad + Badge
+              case 15: borderColor = '#000000'; borderWidth = 0.02; badgeText = 'PREMIUM'; break; // Border + Badge
+              case 16: scale = 0.9; borderColor = '#FFD700'; borderWidth = 0.02; badgeText = 'EXCLUSIVE'; break; // Scale + Border + Badge
+              case 17: paddingX = 0.1; brightness = 1.05; contrast = 1.05; break; // Extra Large Pad + Punchy
+              case 18: borderColor = '#f0f0f0'; borderWidth = 0.04; saturate = 1.1; break; // Thick Light Border + Vibrant
+              case 19: paddingX = 0.03; paddingY = 0.03; borderColor = '#3b82f6'; borderWidth = 0.02; badgeText = 'PRO'; break; // Pro Mix
+            }
+          } else {
+            // Standard Mode: 10 Color/Brightness Variants
             switch(i) {
               case 0: break; // Original
               case 1: brightness = 1.04; saturate = 1.06; break; // Bright & Warm
@@ -128,20 +153,6 @@ export default function App() {
               case 7: hueRotate = 3; brightness = 1.03; break; // Golden
               case 8: contrast = 1.04; brightness = 1.05; break; // Sharp
               case 9: contrast = 0.94; brightness = 1.03; saturate = 1.02; break; // Soft
-            }
-          } else {
-            // Pro Mode exclusive (10-19)
-            switch(i) {
-              case 10: paddingX = 0.05; paddingY = 0.05; break; // White Padding
-              case 11: borderColor = '#000000'; borderWidth = 0.02; break; // Black Border
-              case 12: borderColor = '#FFD700'; borderWidth = 0.03; break; // Gold Border
-              case 13: paddingX = 0.04; paddingY = 0.04; borderColor = '#f0f0f0'; borderWidth = 0.01; break; // Padding + Border
-              case 14: scale = 0.9; paddingX = 0.05; paddingY = 0.05; break; // Scaled Down
-              case 15: scale = 1.1; break; // Scaled Up (Zoom)
-              case 16: badgeText = 'BEST SELLER'; break; // Best Seller Badge
-              case 17: badgeText = 'BEST DEAL'; brightness = 1.05; break; // Best Deal Badge
-              case 18: paddingX = 0.08; brightness = 1.02; contrast = 1.02; break; // Large Padding
-              case 19: borderColor = '#3b82f6'; borderWidth = 0.02; badgeText = 'PRO CHOICE'; break; // Blue Border + Badge
             }
           }
 
@@ -272,7 +283,7 @@ export default function App() {
               url: URL.createObjectURL(blob),
               blob: blob,
               name: `Img${sIdx}_${source.name}_v${vIdx}${paddedSuffix}${wmSuffix}${badgeSuffix}.jpg`,
-              mode: i < 10 ? 'standard' : 'creative',
+              mode: isProMode ? 'creative' : 'standard',
               sourceId: source.id
             });
           }
