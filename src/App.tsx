@@ -32,6 +32,7 @@ export default function App() {
   const [sourceImages, setSourceImages] = useState<SourceImage[]>([]);
   const [variants, setVariants] = useState<ImageVariant[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isProMode, setIsProMode] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,7 +83,7 @@ export default function App() {
     setError(null);
     setProgress(0);
     const newVariants: ImageVariant[] = [];
-    const totalToGeneratePerImage = 10;
+    const totalToGeneratePerImage = isProMode ? 20 : 10;
     const totalOverall = sourceImages.length * totalToGeneratePerImage;
     let currentOverallCount = 0;
 
@@ -102,36 +103,57 @@ export default function App() {
         });
 
         for (let i = 0; i < totalToGeneratePerImage; i++) {
-          // Define 10 distinct modes to make images "fully different"
-          const isPadded = i === 4 || i === 5 || i === 8; // 3 padded variants
-          
+          // Visual parameters
           let brightness = 1.0;
           let contrast = 1.0;
           let saturate = 1.0;
           let hueRotate = 0;
+          let scale = 1.0;
+          let paddingX = 0;
+          let paddingY = 0;
+          let borderColor = '';
+          let borderWidth = 0;
+          let badgeText = '';
 
-          // 10 Distinct Visual Modes
-          switch(i) {
-            case 0: break; // Original / Clean
-            case 1: brightness = 1.04; saturate = 1.06; break; // Bright & Warm
-            case 2: hueRotate = -3; saturate = 0.94; break; // Cool / Professional
-            case 3: contrast = 1.08; saturate = 1.02; break; // High Contrast / Punchy
-            case 4: brightness = 0.97; contrast = 1.05; break; // Moody / Deep
-            case 5: saturate = 0.88; brightness = 1.02; break; // Muted / Vintage
-            case 6: saturate = 1.15; contrast = 1.02; break; // High Saturation / Vibrant
-            case 7: hueRotate = 3; brightness = 1.03; break; // Warm / Golden
-            case 8: contrast = 1.04; brightness = 1.05; break; // Sharp / Light
-            case 9: contrast = 0.94; brightness = 1.03; saturate = 1.02; break; // Soft / Airy
+          // 20 Distinct Visual Modes (10 for Standard, 20 for Pro)
+          if (i < 10) {
+            switch(i) {
+              case 0: break; // Original
+              case 1: brightness = 1.04; saturate = 1.06; break; // Bright & Warm
+              case 2: hueRotate = -3; saturate = 0.94; break; // Cool
+              case 3: contrast = 1.08; saturate = 1.02; break; // High Contrast
+              case 4: brightness = 0.97; contrast = 1.05; break; // Moody
+              case 5: saturate = 0.88; brightness = 1.02; break; // Muted
+              case 6: saturate = 1.15; contrast = 1.02; break; // Vibrant
+              case 7: hueRotate = 3; brightness = 1.03; break; // Golden
+              case 8: contrast = 1.04; brightness = 1.05; break; // Sharp
+              case 9: contrast = 0.94; brightness = 1.03; saturate = 1.02; break; // Soft
+            }
+          } else {
+            // Pro Mode exclusive (10-19)
+            switch(i) {
+              case 10: paddingX = 0.05; paddingY = 0.05; break; // White Padding
+              case 11: borderColor = '#000000'; borderWidth = 0.02; break; // Black Border
+              case 12: borderColor = '#FFD700'; borderWidth = 0.03; break; // Gold Border
+              case 13: paddingX = 0.04; paddingY = 0.04; borderColor = '#f0f0f0'; borderWidth = 0.01; break; // Padding + Border
+              case 14: scale = 0.9; paddingX = 0.05; paddingY = 0.05; break; // Scaled Down
+              case 15: scale = 1.1; break; // Scaled Up (Zoom)
+              case 16: badgeText = 'BEST SELLER'; break; // Best Seller Badge
+              case 17: badgeText = 'BEST DEAL'; brightness = 1.05; break; // Best Deal Badge
+              case 18: paddingX = 0.08; brightness = 1.02; contrast = 1.02; break; // Large Padding
+              case 19: borderColor = '#3b82f6'; borderWidth = 0.02; badgeText = 'PRO CHOICE'; break; // Blue Border + Badge
+            }
           }
 
-          // Add random metadata jitter (extremely subtle)
+          // Add random metadata jitter
           brightness += (Math.random() - 0.5) * 0.004;
           contrast += (Math.random() - 0.5) * 0.004;
-          hueRotate += (Math.random() - 0.5) * 0.4;
 
-          const paddingAmount = isPadded ? Math.round(source.width * 0.05) : 0;
-          canvas.width = source.width + (paddingAmount * 2);
-          canvas.height = source.height;
+          const finalPaddingX = Math.round(source.width * paddingX);
+          const finalPaddingY = Math.round(source.height * paddingY);
+          
+          canvas.width = source.width + (finalPaddingX * 2);
+          canvas.height = source.height + (finalPaddingY * 2);
           
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -139,9 +161,43 @@ export default function App() {
           const shiftX = (Math.random() - 0.5) * 1.5;
           const shiftY = (Math.random() - 0.5) * 1.5;
 
+          ctx.save();
           ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate}) hue-rotate(${hueRotate}deg)`;
-          ctx.drawImage(img, paddingAmount + shiftX, shiftY, source.width, source.height);
-          ctx.filter = 'none';
+          
+          const drawW = source.width * scale;
+          const drawH = source.height * scale;
+          const drawX = finalPaddingX + (source.width - drawW) / 2 + shiftX;
+          const drawY = finalPaddingY + (source.height - drawH) / 2 + shiftY;
+          
+          ctx.drawImage(img, drawX, drawY, drawW, drawH);
+          ctx.restore();
+
+          // Draw Border
+          if (borderColor && borderWidth > 0) {
+            const bWidth = Math.round(source.width * borderWidth);
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = bWidth;
+            ctx.strokeRect(bWidth/2, bWidth/2, canvas.width - bWidth, canvas.height - bWidth);
+          }
+
+          // Draw Badge
+          if (badgeText) {
+            ctx.save();
+            const badgeFontSize = Math.max(12, Math.round(source.width * 0.035));
+            ctx.font = `bold ${badgeFontSize}px sans-serif`;
+            const textMetrics = ctx.measureText(badgeText);
+            const badgeW = textMetrics.width + 20;
+            const badgeH = badgeFontSize + 10;
+            
+            ctx.fillStyle = i === 16 ? '#ef4444' : (i === 17 ? '#f59e0b' : '#3b82f6');
+            ctx.fillRect(10, 10, badgeW, badgeH);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(badgeText, 10 + badgeW/2, 10 + badgeH/2);
+            ctx.restore();
+          }
 
           // Watermark Logic: 4 variants per source image
           const hasNewStyle = i < 2;
@@ -179,20 +235,22 @@ export default function App() {
             ctx.restore();
           }
 
-          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.94));
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.96));
           
           if (blob) {
             const sIdx = (sourceIndex + 1).toString().padStart(2, '0');
             const vIdx = (i + 1).toString().padStart(2, '0');
+            const isPadded = paddingX > 0 || paddingY > 0;
             const paddedSuffix = isPadded ? '_Padded' : '';
             const wmSuffix = hasWatermark ? '_Tagged' : '';
+            const badgeSuffix = badgeText ? `_${badgeText.replace(' ', '')}` : '';
             
             newVariants.push({
               id: Math.random().toString(36).substr(2, 9),
               url: URL.createObjectURL(blob),
               blob: blob,
-              name: `Img${sIdx}_${source.name}_v${vIdx}${paddedSuffix}${wmSuffix}.jpg`,
-              mode: 'standard',
+              name: `Img${sIdx}_${source.name}_v${vIdx}${paddedSuffix}${wmSuffix}${badgeSuffix}.jpg`,
+              mode: i < 10 ? 'standard' : 'creative',
               sourceId: source.id
             });
           }
@@ -313,6 +371,22 @@ export default function App() {
                 </h2>
 
                 <div className="space-y-6">
+                  {/* Mode Selection */}
+                  <div className="flex p-1 bg-gray-100 rounded-2xl">
+                    <button 
+                      onClick={() => setIsProMode(false)}
+                      className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${!isProMode ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      Standard (10)
+                    </button>
+                    <button 
+                      onClick={() => setIsProMode(true)}
+                      className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${isProMode ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      Pro Mode (20)
+                    </button>
+                  </div>
+
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-600">Source Images</span>
@@ -320,16 +394,16 @@ export default function App() {
                     </div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-600">Total Output</span>
-                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * 10} Variants</span>
+                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * (isProMode ? 20 : 10)} Variants</span>
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
                         <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Per Image</p>
-                        <p className="text-lg font-semibold">10</p>
+                        <p className="text-lg font-semibold">{isProMode ? 20 : 10}</p>
                       </div>
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
-                        <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Mix Method</p>
-                        <p className="text-lg font-semibold">Active</p>
+                        <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Engine</p>
+                        <p className="text-lg font-semibold">{isProMode ? 'Pro' : 'Std'}</p>
                       </div>
                     </div>
                   </div>
@@ -337,15 +411,15 @@ export default function App() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                      Original scale maintained
+                      {isProMode ? 'Advanced padding & borders' : 'Original scale maintained'}
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      10 Distinct visual modes
+                      {isProMode ? 'Best Seller & Deal badges' : '10 Distinct visual modes'}
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                      Subtle color & metadata shifts
+                      {isProMode ? '20 Unique logic variants' : 'Subtle color & metadata shifts'}
                     </div>
                   </div>
 
