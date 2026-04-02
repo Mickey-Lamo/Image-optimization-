@@ -235,7 +235,29 @@ export default function App() {
             ctx.restore();
           }
 
-          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.96));
+          // Target size: 100-150 KB iterative adjustment
+          let quality = 0.92;
+          let blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+          
+          if (blob) {
+            let currentSizeKB = blob.size / 1024;
+            // Try up to 3 times to hit the 100-150KB range
+            for (let attempt = 0; attempt < 3; attempt++) {
+              if (currentSizeKB >= 100 && currentSizeKB <= 150) break;
+              
+              if (currentSizeKB > 150) {
+                quality = Math.max(0.1, quality - 0.15);
+              } else {
+                quality = Math.min(1.0, quality + 0.08);
+              }
+              
+              const nextBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+              if (!nextBlob) break;
+              blob = nextBlob;
+              currentSizeKB = blob.size / 1024;
+              if (quality >= 1.0 || quality <= 0.1) break;
+            }
+          }
           
           if (blob) {
             const sIdx = (sourceIndex + 1).toString().padStart(2, '0');
