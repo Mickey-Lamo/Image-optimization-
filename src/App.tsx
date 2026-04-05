@@ -121,11 +121,11 @@ export default function App() {
             switch(i) {
               case 0: paddingX = 0.04; paddingY = 0.04; break; // Small Padding
               case 1: paddingX = 0.08; paddingY = 0.08; break; // Large Padding
-              case 2: borderColor = '#000000'; borderWidth = 0.02; break; // Black Border
-              case 3: borderColor = '#FFD700'; borderWidth = 0.025; break; // Gold Border
-              case 4: borderColor = '#C0C0C0'; borderWidth = 0.02; break; // Silver Border
-              case 5: paddingX = 0.05; paddingY = 0.05; borderColor = '#000000'; borderWidth = 0.015; break; // Pad + Black Border
-              case 6: paddingX = 0.05; paddingY = 0.05; borderColor = '#FFD700'; borderWidth = 0.015; break; // Pad + Gold Border
+              case 2: brightness = 1.05; contrast = 1.05; break; // Punchy
+              case 3: saturate = 1.15; break; // Vibrant
+              case 4: hueRotate = 5; break; // Warm Shift
+              case 5: paddingX = 0.05; paddingY = 0.05; break; // Pad
+              case 6: paddingX = 0.05; paddingY = 0.05; borderColor = '#000000'; borderWidth = 0.015; break; // Pad + Black Border
               case 7: scale = 0.85; paddingX = 0.075; paddingY = 0.075; break; // Scaled Down + Large Pad
               case 8: scale = 0.95; paddingX = 0.025; paddingY = 0.025; break; // Subtle Scale Down
               case 9: scale = 1.15; break; // Zoom In
@@ -134,11 +134,11 @@ export default function App() {
               case 12: badgeText = 'NEW ARRIVAL'; break; // Green Badge
               case 13: badgeText = 'TOP RATED'; break; // Blue Badge
               case 14: paddingX = 0.06; paddingY = 0.06; badgeText = 'LIMITED'; break; // Pad + Badge
-              case 15: borderColor = '#000000'; borderWidth = 0.02; badgeText = 'PREMIUM'; break; // Border + Badge
-              case 16: scale = 0.9; borderColor = '#FFD700'; borderWidth = 0.02; badgeText = 'EXCLUSIVE'; break; // Scale + Border + Badge
+              case 15: borderColor = '#FFD700'; borderWidth = 0.02; badgeText = 'PREMIUM'; break; // Gold Border + Badge
+              case 16: scale = 0.9; badgeText = 'EXCLUSIVE'; break; // Scale + Badge
               case 17: paddingX = 0.1; brightness = 1.05; contrast = 1.05; break; // Extra Large Pad + Punchy
-              case 18: borderColor = '#f0f0f0'; borderWidth = 0.04; saturate = 1.1; break; // Thick Light Border + Vibrant
-              case 19: paddingX = 0.03; paddingY = 0.03; borderColor = '#3b82f6'; borderWidth = 0.02; badgeText = 'PRO'; break; // Pro Mix
+              case 18: contrast = 1.1; saturate = 1.1; break; // High Contrast + Vibrant
+              case 19: paddingX = 0.03; paddingY = 0.03; badgeText = 'PRO'; break; // Pro Mix
             }
           } else {
             // Standard Mode: 10 Color/Brightness Variants
@@ -246,17 +246,17 @@ export default function App() {
             ctx.restore();
           }
 
-          // Target size: 100-150 KB iterative adjustment
-          let quality = 0.92;
+          // Target size: 70-110 KB iterative adjustment
+          let quality = 0.85;
           let blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
           
           if (blob) {
             let currentSizeKB = blob.size / 1024;
-            // Try up to 3 times to hit the 100-150KB range
+            // Try up to 3 times to hit the 70-110KB range
             for (let attempt = 0; attempt < 3; attempt++) {
-              if (currentSizeKB >= 100 && currentSizeKB <= 150) break;
+              if (currentSizeKB >= 70 && currentSizeKB <= 110) break;
               
-              if (currentSizeKB > 150) {
+              if (currentSizeKB > 110) {
                 quality = Math.max(0.1, quality - 0.15);
               } else {
                 quality = Math.min(1.0, quality + 0.08);
@@ -282,7 +282,7 @@ export default function App() {
               id: Math.random().toString(36).substr(2, 9),
               url: URL.createObjectURL(blob),
               blob: blob,
-              name: `Img${sIdx}_${source.name}_v${vIdx}${paddedSuffix}${wmSuffix}${badgeSuffix}.jpg`,
+              name: `v${vIdx}_Img${sIdx}_${source.name}${paddedSuffix}${wmSuffix}${badgeSuffix}.jpg`,
               mode: isProMode ? 'creative' : 'standard',
               sourceId: source.id
             });
