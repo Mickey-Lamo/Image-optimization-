@@ -104,61 +104,60 @@ export default function App() {
 
         for (let i = 0; i < totalToGeneratePerImage; i++) {
           // Visual parameters
-          let brightness = 1.0;
-          let contrast = 1.0;
-          let saturate = 1.0;
-          let hueRotate = 0;
           let scale = 1.0;
           let paddingX = 0;
           let paddingY = 0;
           let borderColor = '';
           let borderWidth = 0;
           let badgeText = '';
+          let rotation = 0;
+          let bgColor = '#ffffff';
+          let tweakName = 'Original';
 
           // 20 Distinct Visual Modes (10 for Standard, 20 for Pro)
           if (isProMode) {
-            // Pro Mode: 20 Creative Variants
+            // Pro Mode: 20 Creative Variants - Structural Only
             switch(i) {
-              case 0: paddingX = 0.04; paddingY = 0.04; break; // Small Padding
-              case 1: paddingX = 0.08; paddingY = 0.08; break; // Large Padding
-              case 2: borderColor = '#000000'; borderWidth = 0.02; break; // Black Border
-              case 3: borderColor = '#FFD700'; borderWidth = 0.025; break; // Gold Border
-              case 4: borderColor = '#C0C0C0'; borderWidth = 0.02; break; // Silver Border
-              case 5: paddingX = 0.05; paddingY = 0.05; borderColor = '#000000'; borderWidth = 0.015; break; // Pad + Black Border
-              case 6: paddingX = 0.05; paddingY = 0.05; borderColor = '#FFD700'; borderWidth = 0.015; break; // Pad + Gold Border
-              case 7: scale = 0.85; paddingX = 0.075; paddingY = 0.075; break; // Scaled Down + Large Pad
-              case 8: scale = 0.95; paddingX = 0.025; paddingY = 0.025; break; // Subtle Scale Down
-              case 9: scale = 1.15; break; // Zoom In
-              case 10: badgeText = 'BEST SELLER'; break; // Red Badge
-              case 11: badgeText = 'BEST DEAL'; break; // Orange Badge
-              case 12: badgeText = 'NEW ARRIVAL'; break; // Green Badge
-              case 13: badgeText = 'TOP RATED'; break; // Blue Badge
-              case 14: paddingX = 0.06; paddingY = 0.06; badgeText = 'LIMITED'; break; // Pad + Badge
-              case 15: borderColor = '#000000'; borderWidth = 0.02; badgeText = 'PREMIUM'; break; // Border + Badge
-              case 16: scale = 0.9; borderColor = '#FFD700'; borderWidth = 0.02; badgeText = 'EXCLUSIVE'; break; // Scale + Border + Badge
-              case 17: paddingX = 0.1; brightness = 1.05; contrast = 1.05; break; // Extra Large Pad + Punchy
-              case 18: borderColor = '#f0f0f0'; borderWidth = 0.04; saturate = 1.1; break; // Thick Light Border + Vibrant
-              case 19: paddingX = 0.03; paddingY = 0.03; borderColor = '#3b82f6'; borderWidth = 0.02; badgeText = 'PRO'; break; // Pro Mix
+              case 0: paddingX = 0.02; paddingY = 0.02; tweakName = 'MicroPadding'; break; 
+              case 1: paddingX = 0.05; paddingY = 0.05; bgColor = '#f5f5f5'; tweakName = 'GrayPadding'; break; // Light Gray
+              case 2: borderColor = '#000000'; borderWidth = 0.02; tweakName = 'BlackBorder'; break;
+              case 3: borderColor = '#FFD700'; borderWidth = 0.025; tweakName = 'GoldBorder'; break;
+              case 4: scale = 0.9; paddingX = 0.05; paddingY = 0.05; bgColor = '#fdf5e6'; tweakName = 'BeigeZoomOut'; break; // Old Lace (Beige)
+              case 5: borderColor = '#C0C0C0'; borderWidth = 0.02; tweakName = 'SilverBorder'; break;
+              case 6: scale = 1.1; tweakName = 'ZoomIn'; break;
+              case 7: rotation = 1.0; tweakName = 'TiltRight'; break;
+              case 8: paddingX = 0.08; paddingY = 0.08; bgColor = '#fafafa'; tweakName = 'WidePadding'; break; // Whitish
+              case 9: scale = 0.95; rotation = -1.0; tweakName = 'TiltLeftZoom'; break;
+              case 10: badgeText = 'BEST SELLER'; tweakName = 'BestSellerBadge'; break;
+              case 11: badgeText = 'FREE SHIPPING'; tweakName = 'FreeShippingBadge'; break;
+              case 12: badgeText = 'NEW ARRIVAL'; scale = 0.95; tweakName = 'NewArrivalBadge'; break;
+              case 13: badgeText = '50% OFF'; borderColor = '#000000'; borderWidth = 0.01; tweakName = 'SaleBadge'; break;
+              case 14: paddingX = 0.04; paddingY = 0.04; badgeText = 'BEST DEAL'; bgColor = '#f8f9fa'; tweakName = 'GrayDealBadge'; break; // Grayish
+              case 15: borderColor = '#333333'; borderWidth = 0.03; badgeText = 'TOP RATED'; tweakName = 'TopRatedBadge'; break;
+              case 16: scale = 0.88; borderColor = '#FFD700'; borderWidth = 0.02; badgeText = 'EXCLUSIVE'; tweakName = 'ExclusiveBadge'; break;
+              case 17: paddingX = 0.06; badgeText = 'LIMITED'; rotation = 1.5; bgColor = '#f5f5dc'; tweakName = 'BeigeLimitedBadge'; break; // Beige
+              case 18: borderColor = '#e5e7eb'; borderWidth = 0.04; badgeText = 'PREMIUM'; tweakName = 'PremiumBadge'; break;
+              case 19: paddingX = 0.03; paddingY = 0.03; borderColor = '#3b82f6'; borderWidth = 0.02; badgeText = 'PRO CHOICE'; tweakName = 'ProChoiceBadge'; break;
             }
           } else {
-            // Standard Mode: 10 Color/Brightness Variants
+            // Standard Mode: 10 Structural Variants
             switch(i) {
-              case 0: break; // Original
-              case 1: brightness = 1.04; saturate = 1.06; break; // Bright & Warm
-              case 2: hueRotate = -3; saturate = 0.94; break; // Cool
-              case 3: contrast = 1.08; saturate = 1.02; break; // High Contrast
-              case 4: brightness = 0.97; contrast = 1.05; break; // Moody
-              case 5: saturate = 0.88; brightness = 1.02; break; // Muted
-              case 6: saturate = 1.15; contrast = 1.02; break; // Vibrant
-              case 7: hueRotate = 3; brightness = 1.03; break; // Golden
-              case 8: contrast = 1.04; brightness = 1.05; break; // Sharp
-              case 9: contrast = 0.94; brightness = 1.03; saturate = 1.02; break; // Soft
+              case 0: tweakName = 'Original'; break; // Original
+              case 1: paddingX = 0.03; bgColor = '#f5f5f5'; tweakName = 'GrayPad'; break;
+              case 2: paddingY = 0.03; bgColor = '#fdf5e6'; tweakName = 'BeigePad'; break;
+              case 3: scale = 0.95; paddingX = 0.02; paddingY = 0.02; bgColor = '#fafafa'; tweakName = 'WhitePadZoom'; break;
+              case 4: borderColor = '#000000'; borderWidth = 0.01; tweakName = 'ThinBorder'; break;
+              case 5: scale = 1.05; tweakName = 'ZoomIn'; break;
+              case 6: rotation = 0.5; tweakName = 'TiltRight'; break;
+              case 7: rotation = -0.5; tweakName = 'TiltLeft'; break;
+              case 8: paddingX = 0.02; paddingY = 0.02; tweakName = 'SimplePad'; break;
+              case 9: scale = 0.98; borderColor = '#cccccc'; borderWidth = 0.01; tweakName = 'SoftBorder'; break;
             }
           }
 
-          // Add random metadata jitter
-          brightness += (Math.random() - 0.5) * 0.004;
-          contrast += (Math.random() - 0.5) * 0.004;
+          // Add random structural jitter
+          const jitterScale = 1 + (Math.random() - 0.5) * 0.002;
+          scale *= jitterScale;
 
           const finalPaddingX = Math.round(source.width * paddingX);
           const finalPaddingY = Math.round(source.height * paddingY);
@@ -166,21 +165,23 @@ export default function App() {
           canvas.width = source.width + (finalPaddingX * 2);
           canvas.height = source.height + (finalPaddingY * 2);
           
-          ctx.fillStyle = '#ffffff';
+          ctx.fillStyle = bgColor;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
           const shiftX = (Math.random() - 0.5) * 1.5;
           const shiftY = (Math.random() - 0.5) * 1.5;
 
           ctx.save();
-          ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate}) hue-rotate(${hueRotate}deg)`;
-          
+          // No color filters applied
+
           const drawW = source.width * scale;
           const drawH = source.height * scale;
-          const drawX = finalPaddingX + (source.width - drawW) / 2 + shiftX;
-          const drawY = finalPaddingY + (source.height - drawH) / 2 + shiftY;
-          
-          ctx.drawImage(img, drawX, drawY, drawW, drawH);
+          const centerX = finalPaddingX + source.width / 2 + shiftX;
+          const centerY = finalPaddingY + source.height / 2 + shiftY;
+
+          ctx.translate(centerX, centerY);
+          if (rotation !== 0) ctx.rotate((rotation * Math.PI) / 180);
+          ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
           ctx.restore();
 
           // Draw Border
@@ -200,13 +201,23 @@ export default function App() {
             const badgeW = textMetrics.width + 20;
             const badgeH = badgeFontSize + 10;
             
-            ctx.fillStyle = i === 16 ? '#ef4444' : (i === 17 ? '#f59e0b' : '#3b82f6');
-            ctx.fillRect(10, 10, badgeW, badgeH);
+            ctx.fillStyle = i === 10 ? '#ef4444' : (i === 11 ? '#3b82f6' : (i === 12 ? '#10b981' : (i === 13 ? '#f59e0b' : (i === 14 ? '#8b5cf6' : '#ec4899'))));
+            
+            // Different positions for badges in Pro Mode
+            let bX = 10;
+            let bY = 10;
+            if (isProMode) {
+              if (i === 11) bX = canvas.width - badgeW - 10; // Top Right
+              if (i === 12) bY = canvas.height - badgeH - 10; // Bottom Left
+              if (i === 13) { bX = canvas.width - badgeW - 10; bY = canvas.height - badgeH - 10; } // Bottom Right
+            }
+            
+            ctx.fillRect(bX, bY, badgeW, badgeH);
             
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(badgeText, 10 + badgeW/2, 10 + badgeH/2);
+            ctx.fillText(badgeText, bX + badgeW/2, bY + badgeH/2);
             ctx.restore();
           }
 
@@ -246,20 +257,20 @@ export default function App() {
             ctx.restore();
           }
 
-          // Target size: 100-150 KB iterative adjustment
-          let quality = 0.92;
+          // Target size: 80-100 KB iterative adjustment
+          let quality = 0.88;
           let blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
           
           if (blob) {
             let currentSizeKB = blob.size / 1024;
-            // Try up to 3 times to hit the 100-150KB range
-            for (let attempt = 0; attempt < 3; attempt++) {
-              if (currentSizeKB >= 100 && currentSizeKB <= 150) break;
+            // Try up to 4 times to hit the 80-100KB range
+            for (let attempt = 0; attempt < 4; attempt++) {
+              if (currentSizeKB >= 80 && currentSizeKB <= 100) break;
               
-              if (currentSizeKB > 150) {
-                quality = Math.max(0.1, quality - 0.15);
+              if (currentSizeKB > 100) {
+                quality = Math.max(0.1, quality - 0.12);
               } else {
-                quality = Math.min(1.0, quality + 0.08);
+                quality = Math.min(1.0, quality + 0.06);
               }
               
               const nextBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
@@ -273,16 +284,13 @@ export default function App() {
           if (blob) {
             const sIdx = (sourceIndex + 1).toString().padStart(2, '0');
             const vIdx = (i + 1).toString().padStart(2, '0');
-            const isPadded = paddingX > 0 || paddingY > 0;
-            const paddedSuffix = isPadded ? '_Padded' : '';
-            const wmSuffix = hasWatermark ? '_Tagged' : '';
-            const badgeSuffix = badgeText ? `_${badgeText.replace(' ', '')}` : '';
+            const versionName = isProMode ? 'Pro' : 'Standard';
             
             newVariants.push({
               id: Math.random().toString(36).substr(2, 9),
               url: URL.createObjectURL(blob),
               blob: blob,
-              name: `Img${sIdx}_${source.name}_v${vIdx}${paddedSuffix}${wmSuffix}${badgeSuffix}.jpg`,
+              name: `V${vIdx}_${versionName}_${tweakName}_Img${sIdx}_${source.name}.jpg`,
               mode: isProMode ? 'creative' : 'standard',
               sourceId: source.id
             });
@@ -452,7 +460,11 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                      {isProMode ? '20 Unique logic variants' : 'Subtle color & metadata shifts'}
+                      {isProMode ? '20 Unique logic variants' : 'Subtle structural & metadata shifts'}
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                      <span>Target Size: 80-100 KB</span>
                     </div>
                   </div>
 
