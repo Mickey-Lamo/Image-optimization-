@@ -113,53 +113,73 @@ export default function App() {
           let paddingY = 0;
           let borderColor = '';
           let borderWidth = 0;
-          let badgeText = '';
+          const activeBadges: { text: string; color: string; pos: number }[] = [];
 
-          // 20 Distinct Visual Modes (10 for Standard, 20 for Pro)
+          const borderColors = [
+            '#4ade80', '#a855f7', '#ec4899', '#eab308', '#3b82f6', 
+            '#f97316', '#06b6d4', '#ef4444', '#8b5cf6', '#10b981',
+            '#f43f5e', '#84cc16', '#6366f1', '#f59e0b', '#14b8a6',
+            '#d946ef', '#22c55e', '#3b82f6', '#ef4444', '#000000'
+          ];
+
+          const badgeTexts = [
+            'HOT SALE', 'BEST DEAL', 'OFFER', 'BIG SALE', 'NEW', 
+            'LIMITED', 'PREMIUM', 'EXCLUSIVE', 'TOP RATED', 'BEST SELLER'
+          ];
+
           if (isProMode) {
-            // Pro Mode: 20 Creative Variants
+            // Restore Original Pro Mode Logic (Before Screenshot)
+            borderWidth = 0.02;
             switch(i) {
               case 0: paddingX = 0.04; paddingY = 0.04; break; // Small Padding
               case 1: paddingX = 0.08; paddingY = 0.08; break; // Large Padding
-              case 2: brightness = 1.05; contrast = 1.05; break; // Punchy
-              case 3: saturate = 1.15; break; // Vibrant
-              case 4: hueRotate = 5; break; // Warm Shift
-              case 5: paddingX = 0.05; paddingY = 0.05; break; // Pad
-              case 6: paddingX = 0.05; paddingY = 0.05; borderColor = '#000000'; borderWidth = 0.015; break; // Pad + Black Border
+              case 2: borderColor = '#000000'; break; // Black Border
+              case 3: borderColor = '#FFD700'; borderWidth = 0.025; break; // Gold Border
+              case 4: borderColor = '#C0C0C0'; break; // Silver Border
+              case 5: paddingX = 0.05; paddingY = 0.05; borderColor = '#000000'; borderWidth = 0.015; break; // Pad + Black Border
+              case 6: paddingX = 0.05; paddingY = 0.05; borderColor = '#FFD700'; borderWidth = 0.015; break; // Pad + Gold Border
               case 7: scale = 0.85; paddingX = 0.075; paddingY = 0.075; break; // Scaled Down + Large Pad
               case 8: scale = 0.95; paddingX = 0.025; paddingY = 0.025; break; // Subtle Scale Down
               case 9: scale = 1.15; break; // Zoom In
-              case 10: badgeText = 'BEST SELLER'; break; // Red Badge
-              case 11: badgeText = 'BEST DEAL'; break; // Orange Badge
-              case 12: badgeText = 'NEW ARRIVAL'; break; // Green Badge
-              case 13: badgeText = 'TOP RATED'; break; // Blue Badge
-              case 14: paddingX = 0.06; paddingY = 0.06; badgeText = 'LIMITED'; break; // Pad + Badge
-              case 15: borderColor = '#FFD700'; borderWidth = 0.02; badgeText = 'PREMIUM'; break; // Gold Border + Badge
-              case 16: scale = 0.9; badgeText = 'EXCLUSIVE'; break; // Scale + Badge
-              case 17: paddingX = 0.1; brightness = 1.05; contrast = 1.05; break; // Extra Large Pad + Punchy
-              case 18: contrast = 1.1; saturate = 1.1; break; // High Contrast + Vibrant
-              case 19: paddingX = 0.03; paddingY = 0.03; badgeText = 'PRO'; break; // Pro Mix
+              case 10: activeBadges.push({ text: 'BEST SELLER', color: '#ef4444', pos: 0 }); break;
+              case 11: activeBadges.push({ text: 'BEST DEAL', color: '#f59e0b', pos: 0 }); break;
+              case 12: activeBadges.push({ text: 'NEW ARRIVAL', color: '#10b981', pos: 0 }); break;
+              case 13: activeBadges.push({ text: 'TOP RATED', color: '#3b82f6', pos: 0 }); break;
+              case 14: paddingX = 0.06; paddingY = 0.06; activeBadges.push({ text: 'LIMITED', color: '#3b82f6', pos: 0 }); break;
+              case 15: borderColor = '#000000'; activeBadges.push({ text: 'PREMIUM', color: '#3b82f6', pos: 0 }); break;
+              case 16: scale = 0.9; borderColor = '#FFD700'; activeBadges.push({ text: 'EXCLUSIVE', color: '#ef4444', pos: 0 }); break;
+              case 17: paddingX = 0.1; scale = 0.9; break; // Extra Large Pad + Scale
+              case 18: borderColor = '#f0f0f0'; borderWidth = 0.04; activeBadges.push({ text: 'VIBRANT', color: '#ec4899', pos: 1 }); break; // Thick Light Border + Sticker
+              case 19: paddingX = 0.03; paddingY = 0.03; borderColor = '#3b82f6'; activeBadges.push({ text: 'PRO', color: '#3b82f6', pos: 0 }); activeBadges.push({ text: 'QUALITY', color: '#10b981', pos: 1 }); break; // Pro Mix
             }
           } else {
-            // Standard Mode: 10 Color/Brightness Variants
-            switch(i) {
-              case 0: break; // Original
-              case 1: brightness = 1.04; saturate = 1.06; break; // Bright & Warm
-              case 2: hueRotate = -3; saturate = 0.94; break; // Cool
-              case 3: contrast = 1.08; saturate = 1.02; break; // High Contrast
-              case 4: brightness = 0.97; contrast = 1.05; break; // Moody
-              case 5: saturate = 0.88; brightness = 1.02; break; // Muted
-              case 6: saturate = 1.15; contrast = 1.02; break; // Vibrant
-              case 7: hueRotate = 3; brightness = 1.03; break; // Golden
-              case 8: contrast = 1.04; brightness = 1.05; break; // Sharp
-              case 9: contrast = 0.94; brightness = 1.03; saturate = 1.02; break; // Soft
+            // New "Low Shipping" Method for Standard Mode
+            borderWidth = 0.02;
+            // Borders: Only for some images (e.g., 70% of them)
+            if (i % 10 < 7) {
+              borderColor = borderColors[i % borderColors.length];
+            }
+            
+            // Stickers: Add 1-3 stickers to some images
+            const numBadges = (i % 4 === 0) ? 2 : (i % 7 === 0 ? 3 : 1);
+            for (let b = 0; b < numBadges; b++) {
+              activeBadges.push({
+                text: badgeTexts[(i + b * 3) % badgeTexts.length],
+                color: borderColors[(i + b * 5 + 2) % borderColors.length],
+                pos: (i + b) % 4 // 0: TL, 1: TR, 2: BL, 3: BR
+              });
+            }
+
+            // Subtle padding/scale variations
+            if (i % 3 === 0) {
+              paddingX = 0.04;
+              paddingY = 0.04;
+            } else if (i % 5 === 0) {
+              scale = 0.95;
             }
           }
 
-          // Add random metadata jitter
-          brightness += (Math.random() - 0.5) * 0.004;
-          contrast += (Math.random() - 0.5) * 0.004;
-
+          // No color shifts applied as per order
           const finalPaddingX = Math.round(source.width * paddingX);
           const finalPaddingY = Math.round(source.height * paddingY);
           
@@ -169,94 +189,107 @@ export default function App() {
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          const shiftX = (Math.random() - 0.5) * 1.5;
-          const shiftY = (Math.random() - 0.5) * 1.5;
-
           ctx.save();
-          ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate}) hue-rotate(${hueRotate}deg)`;
+          // Original image colors preserved across all modes
           
           const drawW = source.width * scale;
           const drawH = source.height * scale;
-          const drawX = finalPaddingX + (source.width - drawW) / 2 + shiftX;
-          const drawY = finalPaddingY + (source.height - drawH) / 2 + shiftY;
+          const drawX = finalPaddingX + (source.width - drawW) / 2;
+          const drawY = finalPaddingY + (source.height - drawH) / 2;
           
           ctx.drawImage(img, drawX, drawY, drawW, drawH);
           ctx.restore();
 
           // Draw Border
-          if (borderColor && borderWidth > 0) {
+          if (borderColor) {
             const bWidth = Math.round(source.width * borderWidth);
             ctx.strokeStyle = borderColor;
             ctx.lineWidth = bWidth;
             ctx.strokeRect(bWidth/2, bWidth/2, canvas.width - bWidth, canvas.height - bWidth);
           }
 
-          // Draw Badge
-          if (badgeText) {
+          // Draw Badges/Stickers
+          activeBadges.forEach((badge, idx) => {
             ctx.save();
-            const badgeFontSize = Math.max(12, Math.round(source.width * 0.035));
+            const badgeFontSize = Math.max(12, Math.round(source.width * 0.03));
             ctx.font = `bold ${badgeFontSize}px sans-serif`;
-            const textMetrics = ctx.measureText(badgeText);
-            const badgeW = textMetrics.width + 20;
-            const badgeH = badgeFontSize + 10;
+            const textMetrics = ctx.measureText(badge.text);
+            const badgeW = textMetrics.width + 16;
+            const badgeH = badgeFontSize + 8;
             
-            ctx.fillStyle = i === 16 ? '#ef4444' : (i === 17 ? '#f59e0b' : '#3b82f6');
-            ctx.fillRect(10, 10, badgeW, badgeH);
+            let bx = 20, by = 20;
+            if (badge.pos === 1) bx = canvas.width - badgeW - 20;
+            if (badge.pos === 2) by = canvas.height - badgeH - 20;
+            if (badge.pos === 3) { bx = canvas.width - badgeW - 20; by = canvas.height - badgeH - 20; }
+
+            // Adjust if multiple badges overlap in same corner (simple offset)
+            const samePosCount = activeBadges.slice(0, idx).filter(b => b.pos === badge.pos).length;
+            if (samePosCount > 0) {
+              if (badge.pos === 2 || badge.pos === 3) {
+                by -= (badgeH + 5) * samePosCount;
+              } else {
+                by += (badgeH + 5) * samePosCount;
+              }
+            }
+
+            ctx.fillStyle = badge.color;
+            ctx.fillRect(bx, by, badgeW, badgeH);
             
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(badgeText, 10 + badgeW/2, 10 + badgeH/2);
+            ctx.fillText(badge.text, bx + badgeW/2, by + badgeH/2);
             ctx.restore();
+          });
+
+          // Watermark Logic (Only for Pro Mode, as it was previously)
+          if (isProMode) {
+            const hasNewStyle = i < 2;
+            const hasOldStyle = i >= 2 && i < 4;
+
+            if (hasNewStyle) {
+              // New Style: Bottom-Right, White with Shadow
+              ctx.save();
+              const fontSize = Math.max(14, Math.round(source.width * 0.035));
+              ctx.font = `bold ${fontSize}px sans-serif`;
+              ctx.shadowColor = 'rgba(0,0,0,0.5)';
+              ctx.shadowBlur = 4;
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+              ctx.textAlign = 'right';
+              ctx.textBaseline = 'bottom';
+              const padding = fontSize;
+              ctx.fillText(WATERMARK_TEXT, canvas.width - padding, canvas.height - padding);
+              ctx.restore();
+            } else if (hasOldStyle) {
+              // Previous Style: Stacked, Middle-Left, Subtle Black
+              ctx.save();
+              const fontSize = Math.max(16, Math.round(source.width * 0.045));
+              ctx.font = `bold ${fontSize}px sans-serif`;
+              ctx.fillStyle = `rgba(0, 0, 0, 0.35)`;
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'middle';
+              const lines = ["golden", "Creation"];
+              const lineHeight = fontSize * 1.1;
+              const startX = canvas.width * 0.15;
+              const startY = canvas.height * 0.6;
+              lines.forEach((line, index) => {
+                ctx.fillText(line, startX, startY + (index * lineHeight));
+              });
+              ctx.restore();
+            }
           }
 
-          // Watermark Logic: 4 variants per source image
-          const hasNewStyle = i < 2;
-          const hasOldStyle = i >= 2 && i < 4;
-          const hasWatermark = hasNewStyle || hasOldStyle;
-
-          if (hasNewStyle) {
-            // New Style: Bottom-Right, White with Shadow
-            ctx.save();
-            const fontSize = Math.max(14, Math.round(source.width * 0.035));
-            ctx.font = `bold ${fontSize}px sans-serif`;
-            ctx.shadowColor = 'rgba(0,0,0,0.5)';
-            ctx.shadowBlur = 4;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'bottom';
-            const padding = fontSize;
-            ctx.fillText(WATERMARK_TEXT, canvas.width - padding, canvas.height - padding);
-            ctx.restore();
-          } else if (hasOldStyle) {
-            // Previous Style: Stacked, Middle-Left, Subtle Black
-            ctx.save();
-            const fontSize = Math.max(16, Math.round(source.width * 0.045));
-            ctx.font = `bold ${fontSize}px sans-serif`;
-            ctx.fillStyle = `rgba(0, 0, 0, 0.35)`;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            const lines = ["golden", "Creation"];
-            const lineHeight = fontSize * 1.1;
-            const startX = canvas.width * 0.15;
-            const startY = canvas.height * 0.6;
-            lines.forEach((line, index) => {
-              ctx.fillText(line, startX, startY + (index * lineHeight));
-            });
-            ctx.restore();
-          }
-
-          // Target size: 70-110 KB iterative adjustment
-          let quality = 0.85;
+          // Target size: 100-140 KB iterative adjustment
+          let quality = 0.95;
           let blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
           
           if (blob) {
             let currentSizeKB = blob.size / 1024;
-            // Try up to 3 times to hit the 70-110KB range
+            // Try up to 3 times to hit the 100-140KB range
             for (let attempt = 0; attempt < 3; attempt++) {
-              if (currentSizeKB >= 70 && currentSizeKB <= 110) break;
+              if (currentSizeKB >= 100 && currentSizeKB <= 140) break;
               
-              if (currentSizeKB > 110) {
+              if (currentSizeKB > 140) {
                 quality = Math.max(0.1, quality - 0.15);
               } else {
                 quality = Math.min(1.0, quality + 0.08);
@@ -275,14 +308,13 @@ export default function App() {
             const vIdx = (i + 1).toString().padStart(2, '0');
             const isPadded = paddingX > 0 || paddingY > 0;
             const paddedSuffix = isPadded ? '_Padded' : '';
-            const wmSuffix = hasWatermark ? '_Tagged' : '';
-            const badgeSuffix = badgeText ? `_${badgeText.replace(' ', '')}` : '';
+            const badgeSuffix = activeBadges.length > 0 ? `_${activeBadges[0].text.replace(' ', '')}` : '';
             
             newVariants.push({
               id: Math.random().toString(36).substr(2, 9),
               url: URL.createObjectURL(blob),
               blob: blob,
-              name: `v${vIdx}_Img${sIdx}_${source.name}${paddedSuffix}${wmSuffix}${badgeSuffix}.jpg`,
+              name: `v${vIdx}_Img${sIdx}_${source.name}${paddedSuffix}${badgeSuffix}.jpg`,
               mode: isProMode ? 'creative' : 'standard',
               sourceId: source.id
             });
