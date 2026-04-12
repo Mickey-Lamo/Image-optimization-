@@ -261,15 +261,15 @@ export default function App() {
           // Draw Brand Logo
           if (shouldAddBrandLogo && logoImg) {
             ctx.save();
-            const logoW = Math.round(canvas.width * 0.2); // 20% of width
+            const logoW = Math.round(canvas.width * 0.28); // Increased size (28% of width)
             const logoH = (logoImg.height / logoImg.width) * logoW;
             
-            let lx = 25, ly = 25;
-            if (brandLogoPos === 1) lx = canvas.width - logoW - 25;
-            if (brandLogoPos === 2) ly = canvas.height - logoH - 25;
-            if (brandLogoPos === 3) { lx = canvas.width - logoW - 25; ly = canvas.height - logoH - 25; }
+            // Placement: Upper middle left or right
+            const isRight = (i % 2 === 1);
+            const lx = isRight ? canvas.width - logoW - 25 : 25;
+            const ly = Math.round(canvas.height * 0.22); // Upper middle position
 
-            ctx.globalAlpha = 0.9;
+            ctx.globalAlpha = 0.95;
             ctx.drawImage(logoImg, lx, ly, logoW, logoH);
             ctx.restore();
           }
