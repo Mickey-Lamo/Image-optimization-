@@ -30,6 +30,7 @@ const WATERMARK_TEXT = "golden Creation";
 
 export default function App() {
   const [sourceImages, setSourceImages] = useState<SourceImage[]>([]);
+  const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [variants, setVariants] = useState<ImageVariant[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isProMode, setIsProMode] = useState(false);
@@ -83,9 +84,21 @@ export default function App() {
     setError(null);
     setProgress(0);
     const newVariants: ImageVariant[] = [];
-    const totalToGeneratePerImage = isProMode ? 20 : 10;
+    const totalToGeneratePerImage = 10;
     const totalOverall = sourceImages.length * totalToGeneratePerImage;
     let currentOverallCount = 0;
+
+    // Pre-load brand logo if exists
+    let logoImg: HTMLImageElement | null = null;
+    if (brandLogo) {
+      logoImg = new Image();
+      logoImg.crossOrigin = "anonymous";
+      logoImg.src = brandLogo;
+      await new Promise((resolve) => {
+        logoImg!.onload = resolve;
+        logoImg!.onerror = resolve; // Continue even if logo fails
+      });
+    }
 
     try {
       const canvas = document.createElement('canvas');
@@ -155,13 +168,13 @@ export default function App() {
           } else {
             // New "Low Shipping" Method for Standard Mode
             borderWidth = 0.02;
-            // Borders: Only for some images (e.g., 70% of them)
-            if (i % 10 < 7) {
+            // Borders: Only for some images (e.g., 30% of them as requested - lesser border techniques)
+            if (i % 10 < 3) {
               borderColor = borderColors[i % borderColors.length];
             }
             
-            // Stickers: Add 1-3 stickers to some images
-            const numBadges = (i % 4 === 0) ? 2 : (i % 7 === 0 ? 3 : 1);
+            // Stickers: Add 1-2 stickers to some images (smaller now)
+            const numBadges = (i % 5 === 0) ? 2 : 1;
             for (let b = 0; b < numBadges; b++) {
               activeBadges.push({
                 text: badgeTexts[(i + b * 3) % badgeTexts.length],
@@ -171,13 +184,15 @@ export default function App() {
             }
 
             // Subtle padding/scale variations
-            if (i % 3 === 0) {
+            if (i % 4 === 0) {
               paddingX = 0.04;
               paddingY = 0.04;
-            } else if (i % 5 === 0) {
-              scale = 0.95;
             }
           }
+
+          // Brand Logo Logic: Add to some images (e.g., 40% of images)
+          const shouldAddBrandLogo = logoImg && (i % 10 < 4);
+          const brandLogoPos = (i + 2) % 4; // Different corner than badges usually
 
           // No color shifts applied as per order
           const finalPaddingX = Math.round(source.width * paddingX);
@@ -211,24 +226,25 @@ export default function App() {
           // Draw Badges/Stickers
           activeBadges.forEach((badge, idx) => {
             ctx.save();
-            const badgeFontSize = Math.max(12, Math.round(source.width * 0.03));
+            // Smaller badges as requested
+            const badgeFontSize = Math.max(10, Math.round(source.width * 0.025));
             ctx.font = `bold ${badgeFontSize}px sans-serif`;
             const textMetrics = ctx.measureText(badge.text);
-            const badgeW = textMetrics.width + 16;
-            const badgeH = badgeFontSize + 8;
+            const badgeW = textMetrics.width + 12;
+            const badgeH = badgeFontSize + 6;
             
-            let bx = 20, by = 20;
-            if (badge.pos === 1) bx = canvas.width - badgeW - 20;
-            if (badge.pos === 2) by = canvas.height - badgeH - 20;
-            if (badge.pos === 3) { bx = canvas.width - badgeW - 20; by = canvas.height - badgeH - 20; }
+            let bx = 15, by = 15;
+            if (badge.pos === 1) bx = canvas.width - badgeW - 15;
+            if (badge.pos === 2) by = canvas.height - badgeH - 15;
+            if (badge.pos === 3) { bx = canvas.width - badgeW - 15; by = canvas.height - badgeH - 15; }
 
-            // Adjust if multiple badges overlap in same corner (simple offset)
+            // Adjust if multiple badges overlap in same corner
             const samePosCount = activeBadges.slice(0, idx).filter(b => b.pos === badge.pos).length;
             if (samePosCount > 0) {
               if (badge.pos === 2 || badge.pos === 3) {
-                by -= (badgeH + 5) * samePosCount;
+                by -= (badgeH + 4) * samePosCount;
               } else {
-                by += (badgeH + 5) * samePosCount;
+                by += (badgeH + 4) * samePosCount;
               }
             }
 
@@ -241,6 +257,22 @@ export default function App() {
             ctx.fillText(badge.text, bx + badgeW/2, by + badgeH/2);
             ctx.restore();
           });
+
+          // Draw Brand Logo
+          if (shouldAddBrandLogo && logoImg) {
+            ctx.save();
+            const logoW = Math.round(canvas.width * 0.2); // 20% of width
+            const logoH = (logoImg.height / logoImg.width) * logoW;
+            
+            let lx = 25, ly = 25;
+            if (brandLogoPos === 1) lx = canvas.width - logoW - 25;
+            if (brandLogoPos === 2) ly = canvas.height - logoH - 25;
+            if (brandLogoPos === 3) { lx = canvas.width - logoW - 25; ly = canvas.height - logoH - 25; }
+
+            ctx.globalAlpha = 0.9;
+            ctx.drawImage(logoImg, lx, ly, logoW, logoH);
+            ctx.restore();
+          }
 
           // Watermark Logic (Only for Pro Mode, as it was previously)
           if (isProMode) {
@@ -382,6 +414,52 @@ export default function App() {
         </header>
 
         <main className="space-y-12">
+          {/* Brand Logo Upload */}
+          <section className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="shrink-0">
+                <div className="w-24 h-24 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden relative group">
+                  {brandLogo ? (
+                    <>
+                      <img src={brandLogo} alt="Brand Logo" className="w-full h-full object-contain p-2" />
+                      <button 
+                        onClick={() => setBrandLogo(null)}
+                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+                    </>
+                  ) : (
+                    <Palette className="w-8 h-8 text-gray-300" />
+                  )}
+                </div>
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Brand Logo</h3>
+                <p className="text-sm text-gray-500 mb-4">Upload your logo to overlay it on generated variants.</p>
+                <input 
+                  type="file" 
+                  id="brand-logo-upload"
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setBrandLogo(ev.target?.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+                <button 
+                  onClick={() => document.getElementById('brand-logo-upload')?.click()}
+                  className="px-6 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-all"
+                >
+                  {brandLogo ? 'Change Logo' : 'Upload Logo'}
+                </button>
+              </div>
+            </div>
+          </section>
           {/* Upload & Controls */}
           <section className="grid lg:grid-cols-12 gap-8 items-start">
             {/* Left: Upload Area & Batch List */}
@@ -448,7 +526,7 @@ export default function App() {
                       onClick={() => setIsProMode(true)}
                       className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${isProMode ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                      Pro Mode (20)
+                      Pro Mode (10)
                     </button>
                   </div>
 
@@ -459,12 +537,12 @@ export default function App() {
                     </div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-600">Total Output</span>
-                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * (isProMode ? 20 : 10)} Variants</span>
+                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * 10} Variants</span>
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
                         <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Per Image</p>
-                        <p className="text-lg font-semibold">{isProMode ? 20 : 10}</p>
+                        <p className="text-lg font-semibold">10</p>
                       </div>
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
                         <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Engine</p>
@@ -476,15 +554,15 @@ export default function App() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                      {isProMode ? 'Advanced padding & borders' : 'Original scale maintained'}
+                      {isProMode ? 'Advanced padding & borders' : 'Lesser border techniques'}
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      {isProMode ? 'Best Seller & Deal badges' : '10 Distinct visual modes'}
+                      {isProMode ? 'Best Seller & Deal badges' : 'High-performance stickers'}
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                      {isProMode ? '20 Unique logic variants' : 'Subtle color & metadata shifts'}
+                      {brandLogo ? 'Brand logo overlay active' : 'Upload logo for branding'}
                     </div>
                   </div>
 
