@@ -84,7 +84,7 @@ export default function App() {
     setError(null);
     setProgress(0);
     const newVariants: ImageVariant[] = [];
-    const totalToGeneratePerImage = 10;
+    const totalToGeneratePerImage = isProMode ? 20 : 10;
     const totalOverall = sourceImages.length * totalToGeneratePerImage;
     let currentOverallCount = 0;
 
@@ -141,29 +141,36 @@ export default function App() {
           ];
 
           if (isProMode) {
-            // Restore Original Pro Mode Logic (Before Screenshot)
+            // "Low Shipping" Method for Pro Mode (20 Variants)
             borderWidth = 0.02;
-            switch(i) {
-              case 0: paddingX = 0.04; paddingY = 0.04; break; // Small Padding
-              case 1: paddingX = 0.08; paddingY = 0.08; break; // Large Padding
-              case 2: borderColor = '#000000'; break; // Black Border
-              case 3: borderColor = '#FFD700'; borderWidth = 0.025; break; // Gold Border
-              case 4: borderColor = '#C0C0C0'; break; // Silver Border
-              case 5: paddingX = 0.05; paddingY = 0.05; borderColor = '#000000'; borderWidth = 0.015; break; // Pad + Black Border
-              case 6: paddingX = 0.05; paddingY = 0.05; borderColor = '#FFD700'; borderWidth = 0.015; break; // Pad + Gold Border
-              case 7: scale = 0.85; paddingX = 0.075; paddingY = 0.075; break; // Scaled Down + Large Pad
-              case 8: scale = 0.95; paddingX = 0.025; paddingY = 0.025; break; // Subtle Scale Down
-              case 9: scale = 1.15; break; // Zoom In
-              case 10: activeBadges.push({ text: 'BEST SELLER', color: '#ef4444', pos: 0 }); break;
-              case 11: activeBadges.push({ text: 'BEST DEAL', color: '#f59e0b', pos: 0 }); break;
-              case 12: activeBadges.push({ text: 'NEW ARRIVAL', color: '#10b981', pos: 0 }); break;
-              case 13: activeBadges.push({ text: 'TOP RATED', color: '#3b82f6', pos: 0 }); break;
-              case 14: paddingX = 0.06; paddingY = 0.06; activeBadges.push({ text: 'LIMITED', color: '#3b82f6', pos: 0 }); break;
-              case 15: borderColor = '#000000'; activeBadges.push({ text: 'PREMIUM', color: '#3b82f6', pos: 0 }); break;
-              case 16: scale = 0.9; borderColor = '#FFD700'; activeBadges.push({ text: 'EXCLUSIVE', color: '#ef4444', pos: 0 }); break;
-              case 17: paddingX = 0.1; scale = 0.9; break; // Extra Large Pad + Scale
-              case 18: borderColor = '#f0f0f0'; borderWidth = 0.04; activeBadges.push({ text: 'VIBRANT', color: '#ec4899', pos: 1 }); break; // Thick Light Border + Sticker
-              case 19: paddingX = 0.03; paddingY = 0.03; borderColor = '#3b82f6'; activeBadges.push({ text: 'PRO', color: '#3b82f6', pos: 0 }); activeBadges.push({ text: 'QUALITY', color: '#10b981', pos: 1 }); break; // Pro Mix
+            
+            // Borders: Sparse use (25% frequency in Pro mode)
+            if (i % 4 === 0) {
+              borderColor = borderColors[i % borderColors.length];
+            }
+
+            // Stickers: More variety in placement and count for 20 versions
+            const numBadges = (i % 3 === 0) ? 2 : (i % 7 === 0 ? 3 : 1);
+            for (let b = 0; b < numBadges; b++) {
+              activeBadges.push({
+                text: badgeTexts[(i + b * 2) % badgeTexts.length],
+                color: borderColors[(i + b * 4 + 3) % borderColors.length],
+                pos: (i + b) % 4
+              });
+            }
+
+            // Varied Layouts
+            switch(i % 10) {
+              case 0: paddingX = 0.04; paddingY = 0.04; break;
+              case 1: scale = 0.95; break;
+              case 2: paddingX = 0.06; paddingY = 0.06; break;
+              case 3: scale = 0.92; paddingX = 0.02; break;
+              case 4: borderColor = '#FFD700'; borderWidth = 0.025; break; // Special Gold variant
+              case 5: activeBadges.push({ text: 'PREMIUM', color: '#000000', pos: 0 }); break;
+              case 6: paddingX = 0.05; scale = 0.98; break;
+              case 7: borderColor = '#000000'; borderWidth = 0.015; break; // Black border variant
+              case 8: scale = 0.9; break;
+              case 9: paddingX = 0.03; paddingY = 0.03; break;
             }
           } else {
             // New "Low Shipping" Method for Standard Mode
@@ -526,7 +533,7 @@ export default function App() {
                       onClick={() => setIsProMode(true)}
                       className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${isProMode ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                      Pro Mode (10)
+                      Pro Mode (20)
                     </button>
                   </div>
 
@@ -537,12 +544,12 @@ export default function App() {
                     </div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-600">Total Output</span>
-                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * 10} Variants</span>
+                      <span className="text-sm font-bold text-blue-600">{sourceImages.length * (isProMode ? 20 : 10)} Variants</span>
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
                         <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Per Image</p>
-                        <p className="text-lg font-semibold">10</p>
+                        <p className="text-lg font-semibold">{isProMode ? 20 : 10}</p>
                       </div>
                       <div className="flex-1 p-3 bg-white rounded-xl border border-gray-200 text-center">
                         <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Engine</p>
