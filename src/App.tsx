@@ -140,6 +140,17 @@ export default function App() {
             'LIMITED', 'PREMIUM', 'EXCLUSIVE', 'TOP RATED', 'BEST SELLER'
           ];
 
+          // Generate Unique Shipping Fee
+          const shippingPrices = ["$1.25", "$1.75", "$1.99", "$2.20", "$2.49", "$2.75", "$2.99", "$3.15", "$3.49", "$3.85", "$3.99", "$4.25", "$4.49", "$4.75", "$4.99", "$5.15", "$5.49", "$5.75", "$5.99", "$6.25"];
+          const selectedShipping = shippingPrices[Math.floor(Math.random() * shippingPrices.length)] + " Shipping";
+          
+          // Always add a shipping badge to ensure uniqueness in charges
+          activeBadges.push({
+            text: selectedShipping,
+            color: borderColors[(i + 7) % borderColors.length],
+            pos: (i + 1) % 4
+          });
+
           if (isProMode) {
             // "Low Shipping" Method for Pro Mode (20 Variants)
             borderWidth = 0.02;
@@ -150,27 +161,24 @@ export default function App() {
             }
 
             // Stickers: More variety in placement and count for 20 versions
-            const numBadges = (i % 3 === 0) ? 2 : (i % 7 === 0 ? 3 : 1);
+            const numBadges = (i % 3 === 0) ? 2 : (i % 5 === 0 ? 3 : 1);
             for (let b = 0; b < numBadges; b++) {
               activeBadges.push({
-                text: badgeTexts[(i + b * 2) % badgeTexts.length],
+                text: badgeTexts[(i + b * 2 + Math.floor(Math.random() * 5)) % badgeTexts.length],
                 color: borderColors[(i + b * 4 + 3) % borderColors.length],
-                pos: (i + b) % 4
+                pos: (i + b + 2) % 4
               });
             }
 
-            // Varied Layouts
+            // Varied Layouts with random jitter for 100% uniqueness
+            paddingX = (Math.random() * 0.08);
+            paddingY = (Math.random() * 0.08);
+            scale = 0.85 + (Math.random() * 0.2); // 0.85 to 1.05
+            
             switch(i % 10) {
-              case 0: paddingX = 0.04; paddingY = 0.04; break;
-              case 1: scale = 0.95; break;
-              case 2: paddingX = 0.06; paddingY = 0.06; break;
-              case 3: scale = 0.92; paddingX = 0.02; break;
+              case 0: borderColor = '#FF0000'; break;
               case 4: borderColor = '#FFD700'; borderWidth = 0.025; break; // Special Gold variant
-              case 5: activeBadges.push({ text: 'PREMIUM', color: '#000000', pos: 0 }); break;
-              case 6: paddingX = 0.05; scale = 0.98; break;
               case 7: borderColor = '#000000'; borderWidth = 0.015; break; // Black border variant
-              case 8: scale = 0.9; break;
-              case 9: paddingX = 0.03; paddingY = 0.03; break;
             }
           } else {
             // New "Low Shipping" Method for Standard Mode
@@ -181,20 +189,19 @@ export default function App() {
             }
             
             // Stickers: Add 1-2 stickers to some images (smaller now)
-            const numBadges = (i % 5 === 0) ? 2 : 1;
+            const numBadges = (i % 4 === 0) ? 2 : 1;
             for (let b = 0; b < numBadges; b++) {
               activeBadges.push({
-                text: badgeTexts[(i + b * 3) % badgeTexts.length],
+                text: badgeTexts[(i + b * 4 + Math.floor(Math.random() * 3)) % badgeTexts.length],
                 color: borderColors[(i + b * 5 + 2) % borderColors.length],
-                pos: (i + b) % 4 // 0: TL, 1: TR, 2: BL, 3: BR
+                pos: (i + b + 3) % 4 // 0: TL, 1: TR, 2: BL, 3: BR
               });
             }
 
-            // Subtle padding/scale variations
-            if (i % 4 === 0) {
-              paddingX = 0.04;
-              paddingY = 0.04;
-            }
+            // Random Jitter for uniqueness
+            paddingX = (Math.random() * 0.05);
+            paddingY = (Math.random() * 0.05);
+            scale = 0.9 + (Math.random() * 0.1);
           }
 
           // Brand Logo Logic: Add to some images (e.g., 40% of images)
